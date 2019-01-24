@@ -38,8 +38,11 @@ package controllers
 import play.mvc.{Http, Security}
 import play.api.mvc.{Action, Result}
 import play.Play
+import javax.inject.Inject
+import play.api.mvc._
+import scala.concurrent.ExecutionContext.Implicits.global
 
-object AnyplaceWebApps extends play.api.mvc.Controller {
+class AnyplaceWebApps @Inject()(cc: ControllerComponents) extends AbstractController(cc) {
 
   def AddTrailingSlash() = Action { implicit request =>
     MovedPermanently(request.path + "/")

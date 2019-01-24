@@ -39,8 +39,11 @@ import play.api.data._
 import play.api.data.Forms._
 import play.api.mvc.{Action, Result}
 import security.User
+import javax.inject.Inject
+import play.api.mvc._
+import scala.concurrent.ExecutionContext.Implicits.global
 
-object ApplicationAnyplace extends play.api.mvc.Controller {
+class ApplicationAnyplace @Inject()(cc: ControllerComponents) extends AbstractController(cc) {
 
   def index() = Action {
     Redirect("/viewer")

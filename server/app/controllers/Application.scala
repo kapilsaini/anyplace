@@ -35,8 +35,11 @@
  */
 package controllers
 import play.api.mvc._
+import javax.inject.Inject
+import play.api.mvc._
+import scala.concurrent.ExecutionContext.Implicits.global
 
-class Application extends Controller {
+class Application @Inject()(cc: ControllerComponents) extends AbstractController(cc) {
 
   def index = Action {
     Ok("It works!")

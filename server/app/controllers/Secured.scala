@@ -38,6 +38,7 @@ package controllers
 import play.api.mvc.RequestHeader
 import play.mvc.{Call, Result, Results, Security}
 import play.mvc.Http.Context
+import scala.concurrent.ExecutionContext.Implicits.global
 
 class Secured extends Security.Authenticator {
 

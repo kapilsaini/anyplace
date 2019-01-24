@@ -36,8 +36,11 @@
 package controllers
 
 import play.api.mvc.Action
+import javax.inject.Inject
+import play.api.mvc._
+import scala.concurrent.ExecutionContext.Implicits.global
 
-object AnyplaceAssets extends play.api.mvc.Controller {
+class AnyplaceAssets @Inject()(cc: ControllerComponents) extends AbstractController(cc)  {
 
   def at(path: String, file: String) = Action.async {
     implicit request =>

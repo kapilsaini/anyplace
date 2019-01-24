@@ -37,6 +37,7 @@ package controllers
 
 import java.io._
 import java.util._
+import javax.inject.Inject
 
 import com.couchbase.client.java.document.json.{JsonArray, JsonObject}
 import datasources.{DatasourceException, ProxyDataSource}
@@ -49,10 +50,12 @@ import play.libs.F
 import radiomapserver.RadioMap
 import radiomapserver.RadioMap.RadioMap
 import utils._
+import play.api.mvc._
+import scala.concurrent.ExecutionContext.Implicits.global
 
 import scala.collection.JavaConversions._
 
-object AnyplacePosition extends play.api.mvc.Controller {
+class AnyplacePosition  @Inject()(cc: ControllerComponents) extends AbstractController(cc) {
 
   def radioUpload() = Action {
     implicit request =>

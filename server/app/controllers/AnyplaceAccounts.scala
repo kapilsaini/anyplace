@@ -36,6 +36,7 @@
 package controllers
 
 import java.util
+import javax.inject.Inject
 
 import datasources.DatasourceException
 import datasources.ProxyDataSource
@@ -48,9 +49,11 @@ import utils.JsonUtils
 import utils.LPLogger
 import com.couchbase.client.java.document.json.{JsonArray, JsonObject}
 import play.api.mvc.{Action, AnyContent, Request, Result}
+import play.api.mvc._
+import scala.concurrent.ExecutionContext.Implicits.global
 
 
-object AnyplaceAccounts extends Controller {
+class AnyplaceAccounts @Inject()(cc: ControllerComponents) extends AbstractController(cc) {
 
   /**
     * Retrieve all the accounts.

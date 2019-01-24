@@ -41,6 +41,7 @@ import java.text.{NumberFormat, ParseException}
 import java.util
 import java.util.Locale
 import java.util.zip.GZIPOutputStream
+import javax.inject.Inject
 
 import acces.{AccesRBF, GeoUtils}
 import breeze.linalg.{DenseMatrix, DenseVector}
@@ -57,6 +58,7 @@ import play.libs.F
 import radiomapserver.RadioMap.RadioMap
 import radiomapserver.RadioMapMean
 import utils._
+import play.api.mvc._
 
 import scala.util.control.Breaks
 import play.api.libs.json.Reads._
@@ -64,8 +66,9 @@ import play.api.libs.json.Reads._
 import scala.collection.JavaConversions._
 import scala.collection.JavaConverters.iterableAsScalaIterableConverter
 import scala.collection.mutable.ListBuffer
+import scala.concurrent.ExecutionContext.Implicits.global
 
-object AnyplaceMapping extends play.api.mvc.Controller {
+class AnyplaceMapping @Inject()(cc: ControllerComponents, anyplacePosition: AnyplacePosition) extends AbstractController(cc)  {
 
   private val ADMIN_ID = "112997031510415584062_google"
 
@@ -692,15 +695,21 @@ object AnyplaceMapping extends play.api.mvc.Controller {
           val res = JsonObject.empty()
           res.put("radioPoints", radioPoints)
           try //                if (request().getHeader("Accept-Encoding") != null && request().getHeader("Accept-Encoding").contains("gzip")) {
-{
+          {
           //Regenerate the radiomap files
-          val strPromise = F.Promise.pure("10")
+          
+
+          /*val strPromise = F.Promise.pure("10")
           val intPromise = strPromise.map(new F.Function[String, Integer]() {
             override def apply(arg0: String): java.lang.Integer = {
               AnyplacePosition.updateFrozenRadioMap(buid, floor_number)
               0
             }
-          })
+          })*/
+
+
+          anyplacePosition.updateFrozenRadioMap(buid, floor_number)
+
           gzippedJSONOk(res.toString)
           //                }
           //                return AnyResponseHelper.ok(res.toString());
@@ -754,13 +763,17 @@ object AnyplaceMapping extends play.api.mvc.Controller {
           try //                if (request().getHeader("Accept-Encoding") != null && request().getHeader("Accept-Encoding").contains("gzip")) {
 {
           //Regenerate the radiomap files
-          val strPromise = F.Promise.pure("10")
+          /*val strPromise = F.Promise.pure("10")
           val intPromise = strPromise.map(new F.Function[String, Integer]() {
             override def apply(arg0: String): java.lang.Integer = {
-              AnyplacePosition.updateFrozenRadioMap(buid, floor_number)
+              
               0
             }
           })
+          */
+
+          anyplacePosition.updateFrozenRadioMap(buid, floor_number)
+
           gzippedJSONOk(res.toString)
           //                }
           //                return AnyResponseHelper.ok(res.toString());

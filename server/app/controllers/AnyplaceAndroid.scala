@@ -38,7 +38,9 @@ package controllers
 import play.api.mvc.{Action, AnyContent, Request, Result}
 import play.mvc.Security
 import utils.{AndroidAPKFile, AnyplaceServerAPI}
-
+import javax.inject.Inject
+import play.api.mvc._
+import scala.concurrent.ExecutionContext.Implicits.global
 /**
   * Created by costantinos on 25/6/2017.
   */
@@ -47,7 +49,7 @@ import java.io.File
 import java.util.{ArrayList, Collections, List}
 
 
-object AnyplaceAndroid extends play.api.mvc.Controller {
+class AnyplaceAndroid  @Inject()(cc: ControllerComponents) extends AbstractController(cc)  {
 
   val ANDROID_APKS_ROOT_DIRECTORY_LOCAL: String = "anyplace_android" + File.separatorChar + "apk" + File.separatorChar
 

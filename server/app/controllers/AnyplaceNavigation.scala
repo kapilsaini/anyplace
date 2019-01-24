@@ -44,13 +44,16 @@ import java.util.ArrayList
 import java.util.Collections
 import java.util.HashMap
 import java.util.List
+import javax.inject.Inject
+import play.api.mvc._
 
 import com.couchbase.client.java.document.json.JsonObject
 import utils._
 //remove if not needed
 import scala.collection.JavaConversions._
+import scala.concurrent.ExecutionContext.Implicits.global
 
-object AnyplaceNavigation extends play.api.mvc.Controller {
+class AnyplaceNavigation @Inject()(cc: ControllerComponents) extends AbstractController(cc)  {
 
   def getBuildingById() = Action {
     implicit request =>
