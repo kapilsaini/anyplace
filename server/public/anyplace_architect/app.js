@@ -232,7 +232,7 @@ app.factory('AnyplaceService', function () {
         username: 'username',
         password: 'password'
     };
-    anyService.BASE_URL = "https://ap.cs.ucy.ac.cy";
+    anyService.BASE_URL = "http://UPDATE_URL_ap.cs.ucy.ac.cy";
 
     anyService.getBuilding = function () {
         return this.selectedBuilding;
@@ -307,21 +307,21 @@ app.factory('AnyplaceService', function () {
         if (!this.selectedBuilding || !this.selectedBuilding.buid) {
             return "N/A";
         }
-        return encodeURIComponent("https://ap.cs.ucy.ac.cy/viewer/?buid=" + this.selectedBuilding.buid);
+        return encodeURIComponent(anyService.BASE_URL+"/viewer/?buid=" + this.selectedBuilding.buid);
     };
 
     anyService.getCampusViewerUrl = function () {
         if (!this.selectedCampus || !this.selectedCampus.cuid) {
             return "N/A";
         }
-        return "https://ap.cs.ucy.ac.cy/viewer/?cuid=" + this.selectedCampus.cuid;
+        return anyService.BASE_URL+"/viewer/?cuid=" + this.selectedCampus.cuid;
     };
 
     anyService.getCampusViewerUrlEncoded = function () {
         if (!this.selectedCampus || !this.selectedCampus.cuid) {
             return "N/A";
         }
-        return encodeURIComponent("https://ap.cs.ucy.ac.cy/viewer/?cuid=" + this.selectedCampus.cuid);
+        return encodeURIComponent(anyService.BASE_URL+"/viewer/?cuid=" + this.selectedCampus.cuid);
     };
 
     anyService.setAllPois = function (p) {
