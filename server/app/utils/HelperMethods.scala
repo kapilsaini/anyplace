@@ -81,6 +81,7 @@ object HelperMethods {
     def base64ToString(base64_in: String): String = new String(decodeBase64(base64_in))
 
     def storeRadioMapToServer(file: File): Boolean = {
+        println("storeRadioMapToServer")
         val radio_dir = "radio_maps_raw/"
         val dir = new File(radio_dir)
         dir.mkdirs()

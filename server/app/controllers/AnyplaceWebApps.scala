@@ -91,6 +91,17 @@ object AnyplaceWebApps extends play.api.mvc.Controller {
     serveFile(viewerDir, file)
   }
 
+  def serveDashboard(file: String) = Action { implicit request =>
+    val mode = request.getQueryString("mode").getOrElse("")
+    var viewerDir = "public/anyplace_dashboard"
+    if (mode == null || !mode.equalsIgnoreCase("widget")) {
+      var bid = request.getQueryString("buid").getOrElse("")
+      var pid = request.getQueryString("selected").getOrElse("")
+      var floor = request.getQueryString("floor").getOrElse("")
+    }
+    serveFile(viewerDir, file)
+  }
+
   def serveViewer2(file: String) = Action { request =>
     val mode = request.getQueryString("mode").getOrElse("")
     if (mode == null || !mode.equalsIgnoreCase("widget")) {

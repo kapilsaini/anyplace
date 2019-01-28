@@ -276,6 +276,11 @@ class ProxyDataSource private() extends IDatasource {
     mActiveDatabase.dumpRssLogEntriesSpatial(outFile, bbox, floor_number)
   }
 
+  override def dumpAuthorizedRssLogEntriesByBuildingFloor(outFile: FileOutputStream, buid: String, floor_number: String): Long = {
+    _checkActiveDatasource()
+    mActiveDatabase.dumpAuthorizedRssLogEntriesByBuildingFloor(outFile, buid, floor_number)
+  }
+
   override def dumpRssLogEntriesByBuildingACCESFloor(outFile: FileOutputStream, buid: String, floor_number: String): Long = {
     _checkActiveDatasource()
     mActiveDatabase.dumpRssLogEntriesByBuildingACCESFloor(outFile, buid, floor_number)
@@ -380,6 +385,26 @@ class ProxyDataSource private() extends IDatasource {
   override def deleteNotValidDocuments(): Boolean ={
     _checkActiveDatasource()
     mActiveDatabase.deleteNotValidDocuments()
+  }
+
+  override def getLocationHistoryByObjId(objid: String): util.List[JsonObject] = {
+    _checkActiveDatasource()
+    mActiveDatabase.getLocationHistoryByObjId(objid)
+  }
+
+  override def getAutAccessPointsBySSID(ssid: String): util.List[JsonObject] = {
+    _checkActiveDatasource()
+    mActiveDatabase.getAutAccessPointsBySSID(ssid)
+  }
+
+  override def getAutAccessPointsByBuildingFloor(buid: String, floor: String): util.List[JsonObject] = {
+    _checkActiveDatasource()
+    mActiveDatabase.getAutAccessPointsByBuildingFloor(buid, floor)
+  }
+
+  override def getAllAutAccessPoints(): util.List[JsonObject] = {
+    _checkActiveDatasource()
+    mActiveDatabase.getAllAutAccessPoints()
   }
 
 }

@@ -64,6 +64,7 @@ object RadioMap {
           line = line.replace(", ", " ")
           val temp = line.split(" ")
           if (temp.length != 8) {
+            println("Error in line " + line)
             throw new Exception("Line " + line_num + " length is not equal to 8.")
           }
           java.lang.Float.parseFloat(temp(1))

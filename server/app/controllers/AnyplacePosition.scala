@@ -49,6 +49,7 @@ import play.libs.F
 import radiomapserver.RadioMap
 import radiomapserver.RadioMap.RadioMap
 import utils._
+import play.Play
 
 import scala.collection.JavaConversions._
 
@@ -106,7 +107,9 @@ object AnyplacePosition extends play.api.mvc.Controller {
         if (newBuildingsFloors == null) {
           return AnyResponseHelper.bad_request("Corrupted radio file uploaded!")
         } else {
+          println("Storing radio file to server: " + radioFile.get.ref.file)
           HelperMethods.storeRadioMapToServer(radioFile.get.ref.file)
+          println("stored RadioMapToServer")
           val errorMsg: String = null
           val strPromise = F.Promise.pure("10")
           val intPromise = strPromise.map(new F.Function[String, Integer]() {
@@ -116,6 +119,7 @@ object AnyplacePosition extends play.api.mvc.Controller {
               for (nBuilding <- newBuildingsFloors.keySet) {
                 var bFloors = newBuildingsFloors.get(nBuilding)
                 for (bFloor <- bFloors) {
+                  println("update rozenRadioMap for" + nBuilding + "   " + bFloor)
                   updateFrozenRadioMap(nBuilding, bFloor)
                 }
               }
@@ -132,12 +136,14 @@ object AnyplacePosition extends play.api.mvc.Controller {
   def radioDownloadFloor() = Action {
     implicit request =>
       def inner(request: Request[AnyContent]): Result = {
+        println("radioDownloadFloor start")
         val anyReq = new OAuth2Request(request)
         if (!anyReq.assertJsonBody()) {
           return AnyResponseHelper.bad_request(AnyResponseHelper.CANNOT_PARSE_BODY_AS_JSON)
         }
         val json = anyReq.getJsonBody
-        LPLogger.info("AnyplacePosition::radioDownloadFloor(): " + json.toString)
+        
+        LPLogger.info("AnyplacePosition::radioDownloadFloor() XXXXX: " + json.toString)
         val requiredMissing = JsonUtils.requirePropertiesInJson(json, "coordinates_lat", "coordinates_lon",
           "floor_number")
         if (!requiredMissing.isEmpty) {
@@ -200,6 +206,7 @@ object AnyplacePosition extends play.api.mvc.Controller {
             pos = radiomap_parameters_filename.indexOf("radiomaps")
             radiomap_parameters_filename = api + radiomap_parameters_filename.substring(pos)
             val res = JsonObject.empty()
+            println("radioDownloadFloor :  response found")
             res.put("map_url_mean", radiomap_mean_filename)
             res.put("map_url_weights", radiomap_rbf_weights_filename)
             res.put("map_url_parameters", radiomap_parameters_filename)
@@ -223,7 +230,8 @@ object AnyplacePosition extends play.api.mvc.Controller {
           return AnyResponseHelper.bad_request(AnyResponseHelper.CANNOT_PARSE_BODY_AS_JSON)
         }
         val json = anyReq.getJsonBody
-        LPLogger.info("AnyplacePosition::radioDownloadFloor(): " + json.toString)
+        println("radioDownloadFloor json ->" + json)
+        LPLogger.info("AnyplacePosition::radioDownloadFloor(): 2222" + json.toString)
         val requiredMissing = JsonUtils.requirePropertiesInJson(json, "floor", "buid")
         if (!requiredMissing.isEmpty) {
           return AnyResponseHelper.requiredFieldsMissing(requiredMissing)
@@ -244,17 +252,23 @@ object AnyplacePosition extends play.api.mvc.Controller {
           floor_number +
           AnyplaceServerAPI.URL_SEPARATOR +
           "indoor-radiomap-mean.txt")
+        println(rmapDir.exists(), "--", radiomapFile.exists(),"--", meanFile.exists())
         if (rmapDir.exists() && radiomapFile.exists() && meanFile.exists()) {
+          println("rmap exists")
           try {
             val folder = rmapDir.toString
             val radiomap_filename = new File(folder + AnyplaceServerAPI.URL_SEPARATOR + "indoor-radiomap.txt")
               .getAbsolutePath
+            println("radiomap_filename", radiomap_filename)
             var radiomap_mean_filename = radiomap_filename.replace(".txt", "-mean.txt")
+            println("radiomap_mean_filename", radiomap_mean_filename)
             var radiomap_rbf_weights_filename = radiomap_filename.replace(".txt", "-weights.txt")
             var radiomap_parameters_filename = radiomap_filename.replace(".txt", "-parameters.txt")
             val api = AnyplaceServerAPI.SERVER_API_ROOT
+            println("api", api)
             var pos = radiomap_mean_filename.indexOf("radiomaps_frozen")
             radiomap_mean_filename = api + radiomap_mean_filename.substring(pos)
+            println("radiomap_mean_filename updated", radiomap_mean_filename)
             pos = radiomap_rbf_weights_filename.indexOf("radiomaps_frozen")
             radiomap_rbf_weights_filename = api + radiomap_rbf_weights_filename.substring(pos)
             pos = radiomap_parameters_filename.indexOf("radiomaps_frozen")
@@ -263,6 +277,7 @@ object AnyplacePosition extends play.api.mvc.Controller {
             res.put("map_url_mean", radiomap_mean_filename)
             res.put("map_url_weights", radiomap_rbf_weights_filename)
             res.put("map_url_parameters", radiomap_parameters_filename)
+            println("RESPONSE -> "  , res)
             return AnyResponseHelper.ok(res, "Successfully served radio map.")
           } catch {
             case e: Exception => return AnyResponseHelper.internal_server_error("Error serving radiomap : " + e.getMessage)
@@ -315,6 +330,7 @@ object AnyplacePosition extends play.api.mvc.Controller {
           res.put("map_url_mean", radiomap_mean_filename)
           res.put("map_url_weights", radiomap_rbf_weights_filename)
           res.put("map_url_parameters", radiomap_parameters_filename)
+          println("radioDownloadFloor response ->" + res)
           return AnyResponseHelper.ok(res, "Successfully created radio map.")
         } catch {
           case e: Exception => return AnyResponseHelper.internal_server_error("Error while creating Radio Map on-the-fly! : " + e.getMessage)
@@ -340,7 +356,7 @@ object AnyplacePosition extends play.api.mvc.Controller {
           return AnyResponseHelper.bad_request(AnyResponseHelper.CANNOT_PARSE_BODY_AS_JSON)
         }
         val json = anyReq.getJsonBody
-        LPLogger.info("AnyplacePosition::radioDownloadFloor(): " + json.toString)
+        LPLogger.info("AnyplacePosition::radioDownloadFloor():" + json.toString)
         val requiredMissing = JsonUtils.requirePropertiesInJson(json, "floor", "buid")
         if (!requiredMissing.isEmpty) {
           return AnyResponseHelper.requiredFieldsMissing(requiredMissing)
@@ -520,7 +536,7 @@ object AnyplacePosition extends play.api.mvc.Controller {
   }
 
   def serveFrozenRadioMap(building: String, floor: String, fileName: String) = Action {
-
+   
     def inner(): Result = {
       val filePath = "radiomaps_frozen" + AnyplaceServerAPI.URL_SEPARATOR + building + AnyplaceServerAPI.URL_SEPARATOR +
         floor +
@@ -563,24 +579,48 @@ object AnyplacePosition extends play.api.mvc.Controller {
         }
         i += 1
       }
+
+      val filterAccessPoints = Play.application().configuration().getBoolean("filterAccessPoints")
+      var filterdAccessPoints = new ArrayList[String]()
+      var filteredAccessPointsLoaded: Boolean = false
+
       for (value <- values) {
+        println("Processing ->" + value)
         val segs = value.split(" ")
         var rmr: RadioMapRaw = null
-        if (segs.length >= 8) {
-          rmr = new RadioMapRaw(segs(0), segs(1), segs(2), segs(3), segs(4), segs(5), segs(6), maxMac,
-            segs(7))
-        } else if (segs.length >= 7) {
-          rmr = new RadioMapRaw(segs(0), segs(1), segs(2), segs(3), segs(4), segs(5), segs(6), maxMac)
-        } else {
-          return "Some fields are missing from the log."
+
+        if (filterAccessPoints && !filteredAccessPointsLoaded) {
+          if (segs.length  >= 8 ) {
+              val temp = ProxyDataSource.getIDatasource.getAutAccessPointsByBuildingFloor(segs(7), segs(6))
+              val fAccessPoints = temp.map{ jsObj =>
+                println(jsObj.getString("ssid"))
+                jsObj.getString("ssid")
+              }
+              filterdAccessPoints.addAll(fAccessPoints.toList)
+              filteredAccessPointsLoaded = true
+            }
+            println("Filterd access points -> " + filterdAccessPoints)
         }
-        LPLogger.info(rmr.toValidCouchJson().toString)
-        try {
-          if (!ProxyDataSource.getIDatasource.addJsonDocument(rmr.getId, 0, rmr.toCouchGeoJSON())) {
-            LPLogger.info("Radio Map entry was not saved in database![Possible duplicate]")
+        println("Comparing " + segs(4) + " with list" + filterdAccessPoints.isEmpty)
+        if(filterdAccessPoints.isEmpty || filterdAccessPoints.contains(segs(4))){
+          if (segs.length >= 8) {
+            rmr = new RadioMapRaw(segs(0), segs(1), segs(2), segs(3), segs(4), segs(5), segs(6), maxMac,
+              segs(7))
+          } else if (segs.length >= 7) {
+            rmr = new RadioMapRaw(segs(0), segs(1), segs(2), segs(3), segs(4), segs(5), segs(6), maxMac)
+          } else {
+            return "Some fields are missing from the log."
           }
-        } catch {
-          case e: DatasourceException => return "Internal server error while trying to save rss entry."
+          LPLogger.info(rmr.toValidCouchJson().toString)
+          try {
+            if (!ProxyDataSource.getIDatasource.addJsonDocument(rmr.getId, 0, rmr.toCouchGeoJSON())) {
+              LPLogger.info("Radio Map entry was not saved in database![Possible duplicate]")
+            }
+          } catch {
+            case e: DatasourceException => return "Internal server error while trying to save rss entry."
+          }
+        } else {
+          LPLogger.info(segs(4) + "is not an authorized access point, so skipping")
         }
       }
     }
@@ -667,6 +707,7 @@ object AnyplacePosition extends play.api.mvc.Controller {
   }
 
   def updateFrozenRadioMap(buid: String, floor_number: String) {
+    println("22222222222222")
     if (!Floor.checkFloorNumberFormat(floor_number)) {
       return
     }
@@ -685,7 +726,7 @@ object AnyplacePosition extends play.api.mvc.Controller {
     }
     var floorFetched: Long = 0l
     try {
-      floorFetched = ProxyDataSource.getIDatasource.dumpRssLogEntriesByBuildingFloor(fout, buid, floor_number)
+      floorFetched = ProxyDataSource.getIDatasource.dumpAuthorizedRssLogEntriesByBuildingFloor(fout, buid, floor_number)
       try {
         fout.close()
       } catch {
@@ -699,7 +740,8 @@ object AnyplacePosition extends play.api.mvc.Controller {
     }
     try {
       val folder = rmapDir.toString
-      val radiomap_filename = new File(folder + AnyplaceServerAPI.URL_SEPARATOR + "indoor-radiomap.txt")
+      println("Folder where updating radio map: " + folder)
+      /*val radiomap_filename = new File(folder + AnyplaceServerAPI.URL_SEPARATOR + "indoor-radiomap.txt")
         .getAbsolutePath
       var radiomap_mean_filename = radiomap_filename.replace(".txt", "-mean.txt")
       var radiomap_rbf_weights_filename = radiomap_filename.replace(".txt", "-weights.txt")
@@ -718,7 +760,7 @@ object AnyplacePosition extends play.api.mvc.Controller {
       val res = JsonObject.empty()
       res.put("map_url_mean", radiomap_mean_filename)
       res.put("map_url_weights", radiomap_rbf_weights_filename)
-      res.put("map_url_parameters", radiomap_parameters_filename)
+      res.put("map_url_parameters", radiomap_parameters_filename)*/
       return
     } catch {
       case e: Exception => return
@@ -992,5 +1034,30 @@ object AnyplacePosition extends play.api.mvc.Controller {
       }
 
       inner(request)
+  }
+
+
+  def getLocHistoryByObjId() = Action {
+    implicit request =>
+      def inner(request: Request[AnyContent]): Result = {
+        val anyReq = new OAuth2Request(request)
+        if (!anyReq.assertJsonBody()) {
+          return AnyResponseHelper.bad_request(AnyResponseHelper.CANNOT_PARSE_BODY_AS_JSON)
+        }
+        val json = anyReq.getJsonBody
+        val objID = (json \ "obid").as[String]
+        LPLogger.info("AnyplaceMapping::getLocHistoryByObjId(): " + objID.toString)
+        try {
+          val lHistory = ProxyDataSource.getIDatasource.getLocationHistoryByObjId(objID)
+          println("lHistory ->" + lHistory)
+          val res = JsonObject.empty()
+          res.put("lHistory", JsonArray.from(lHistory))
+          return AnyResponseHelper.ok(res.toString)
+        } catch {
+          case e: DatasourceException => return AnyResponseHelper.internal_server_error("Server Internal Error [" + e.getMessage + "]")
+        }
+      }
+
+    inner(request)
   }
 }

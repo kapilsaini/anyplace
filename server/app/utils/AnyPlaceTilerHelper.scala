@@ -92,9 +92,11 @@ object AnyPlaceTilerHelper {
               imageFile.toString +
               "]")
         }
+        println("ANYPLACE_TILER_SCRIPT_START " + ANYPLACE_TILER_SCRIPT_START)
         val pb = new ProcessBuilder(ANYPLACE_TILER_SCRIPT_START, imageFile.getAbsolutePath.toString, lat,
             lng, "-DISLOG")
         val log = new File(imageDir, "anyplace_tiler_" + imageFile.getName + ".log")
+        println("log " +  log)
         pb.redirectErrorStream(true)
         pb.redirectOutput(ProcessBuilder.Redirect.appendTo(log))
         try {
@@ -143,9 +145,11 @@ object AnyPlaceTilerHelper {
               imageFile.toString +
               "]")
         }
+        println("ANYPLACE_TILER_SCRIPT_START " + ANYPLACE_TILER_SCRIPT_START)
         val pb = new ProcessBuilder(ANYPLACE_TILER_SCRIPT_START, imageFile.getAbsolutePath.toString, lat,
             lng,"-DISLOG",zoom)
         val log = new File(imageDir, "anyplace_tiler_" + imageFile.getName + ".log")
+        println("log " +  log)
         pb.redirectErrorStream(true)
         pb.redirectOutput(ProcessBuilder.Redirect.appendTo(log))
         try {

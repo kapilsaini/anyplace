@@ -1,0 +1,7 @@
+{
+  "views": {
+    "location_history": {
+         "map": "function (doc, meta) {if( doc.lhistid && doc.obid) emit([doc.obid], {\"id\":doc.lhistid, \"obid\":doc.obid, \"dvid\":doc.dvid,\"building\": doc.buid,\"floor\":doc.floor, \"lat\":doc.coordinates_lat, \"long\":doc.coordinates_lon,\"timestamp\":doc.timestamp}); }"
+     }
+  }
+}

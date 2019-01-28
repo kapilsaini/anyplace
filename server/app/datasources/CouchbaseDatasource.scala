@@ -237,7 +237,7 @@ class CouchbaseDatasource private(hostname: String,
       }
     }
   }
-
+      
   override def buildingFromKeyAsJson(key: String): JsonObject = {
     val building = getFromKeyAsJson(key)
     if (building == null) {
@@ -330,6 +330,7 @@ class CouchbaseDatasource private(hostname: String,
   override def floorsByBuildingAsJson(buid: String): List[JsonObject] = {
     val floors = new ArrayList[JsonObject]()
     val couchbaseClient = getConnection
+    println("buid ->" + buid)
     val viewQuery = ViewQuery.from("nav", "floor_by_buid").key(buid).includeDocs(true)
 
     val res = couchbaseClient.query(viewQuery)
@@ -340,6 +341,7 @@ class CouchbaseDatasource private(hostname: String,
     var json: JsonObject = null
 
     for (row <- res.allRows()) {
+      println("Adding floor to response")
       try {
         json = row.document().content()
         json.removeKey("owner_id")
@@ -348,6 +350,7 @@ class CouchbaseDatasource private(hostname: String,
         case e: IOException =>
       }
     }
+    
     floors
   }
 
@@ -889,7 +892,7 @@ class CouchbaseDatasource private(hostname: String,
     val couchbaseClient = getConnection
     val viewQuery = ViewQuery.from("nav", "building_all").includeDocs(true)
     val res = couchbaseClient.query(viewQuery)
-    //
+    println("CBRES ->" + res)
 
     for (row <- res.allRows()) {
       try {
@@ -903,11 +906,6 @@ class CouchbaseDatasource private(hostname: String,
         case e: IOException =>
       }
     }
-
-    val test = JsonObject.empty().put("name", " 星网:")
-    val name = " 星网:"
-    println(test.toString)
-    println(name)
     buildings
   }
 
@@ -1097,7 +1095,6 @@ class CouchbaseDatasource private(hostname: String,
     }
     buildingsets
   }
-
   override def dumpRssLogEntriesSpatial(outFile: FileOutputStream, bbox: Array[GeoPoint], floor_number: String): Long = {
     val writer = new PrintWriter(outFile)
     var view = null
@@ -1160,6 +1157,49 @@ class CouchbaseDatasource private(hostname: String,
           case e: IOException => //continue
         }
         writer.println(RadioMapRaw.toRawRadioMapRecord(rssEntry))
+      }
+      totalFetched += currentFetched
+      LPLogger.info("total fetched: " + totalFetched)
+    } while (currentFetched >= queryLimit)
+    writer.flush()
+    writer.close()
+    totalFetched
+  }
+
+  override def dumpAuthorizedRssLogEntriesByBuildingFloor(outFile: FileOutputStream, buid: String, floor_number: String): Long = {
+
+    val accessPointsJson = getAutAccessPointsByBuildingFloor(buid, floor_number)
+    val accessPoints = accessPointsJson.map{ jsObj => jsObj.getString("ssid")}
+    val accessPointsList = accessPoints.toList
+    println("Filterd access points -> " + accessPointsList)
+
+    val writer = new PrintWriter(outFile)
+    val couchbaseClient = getConnection
+    val queryLimit = 10000
+    var totalFetched = 0
+    var currentFetched: Int = 0
+    var rssEntry: JsonObject = null
+
+    var viewQuery = ViewQuery.from("radio", "raw_radio_building_floor").key(JsonArray.from(buid, floor_number)).includeDocs(true)
+
+    do {
+      viewQuery = ViewQuery.from("radio", "raw_radio_building_floor").key(JsonArray.from(buid, floor_number)).includeDocs(true).limit(queryLimit).skip(totalFetched)
+
+      val res = couchbaseClient.query(viewQuery)
+      if (!(res.totalRows() > 0)) return totalFetched
+      currentFetched = 0
+
+      for (row <- res.allRows()) {
+        currentFetched += 1
+        try {
+          rssEntry = row.document().content()
+          if (accessPointsList.contains(rssEntry.getString("MAC"))){
+            println("rssEntry ->" + rssEntry.getString("MAC"))
+            writer.println(RadioMapRaw.toRawRadioMapRecord(rssEntry))
+          }
+        } catch {
+          case e: IOException => //continue
+        }
       }
       totalFetched += currentFetched
       LPLogger.info("total fetched: " + totalFetched)
@@ -2075,4 +2115,85 @@ class CouchbaseDatasource private(hostname: String,
     true
   }
 
+
+  override def getLocationHistoryByObjId(obid: String): List[JsonObject] = {
+    val couchbaseClient = getConnection
+    val viewQuery = ViewQuery.from("loc_history", "location_history").key(JsonArray.from(obid))
+
+    val res = couchbaseClient.query(viewQuery)
+    val result = new ArrayList[JsonObject]()
+    var json: JsonObject = null
+
+    for (row <- res.allRows()) {
+      try {
+        json = row.document().content()
+        result.add(json)
+      } catch {
+        case e: IOException =>
+      }
+    }
+    println("returning rows")
+    result
+  }
+
+
+  override def getAllAutAccessPoints(): List[JsonObject] = {
+    val couchbaseClient = getConnection
+    val viewQuery = ViewQuery.from("auth_ap", "auth_ap_all")
+
+    val res = couchbaseClient.query(viewQuery)
+    val result = new ArrayList[JsonObject]()
+    var json: JsonObject = null
+
+    for (row <- res.allRows()) {
+      try {
+        json = row.document().content()
+        result.add(json)
+      } catch {
+        case e: IOException =>
+      }
+    }
+    result
+  }
+
+
+  override def getAutAccessPointsBySSID(ssid: String): List[JsonObject] = {
+    val couchbaseClient = getConnection
+    val viewQuery = ViewQuery.from("auth_ap", "auth_ap_by_ssid").key(JsonArray.from(ssid))
+
+    val res = couchbaseClient.query(viewQuery)
+    val result = new ArrayList[JsonObject]()
+    var json: JsonObject = null
+
+    for (row <- res.allRows()) {
+      try {
+        json = row.document().content()
+        result.add(json)
+      } catch {
+        case e: IOException =>
+      }
+    }
+    result
+  }
+
+  override def getAutAccessPointsByBuildingFloor(buid: String, floor: String): List[JsonObject] = {
+    val couchbaseClient = getConnection
+    val viewQuery = ViewQuery.from("auth_ap", "auth_ap_by_buid_floor").key(JsonArray.from(buid, floor))
+
+    val res = couchbaseClient.query(viewQuery)
+    val result = new ArrayList[JsonObject]()
+    var json: JsonObject = null
+
+    println("totalRows -> " + res.totalRows)
+    for (row <- res.allRows()) {
+      println("Processing row")
+      try {
+        json = row.document().content()
+        result.add(json)
+      } catch {
+        case e: IOException =>
+      }
+    }
+    result
+  }
 }

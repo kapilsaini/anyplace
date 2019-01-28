@@ -17,8 +17,8 @@ POST        /anyplace/navigation/route                                          
 POST        /anyplace/navigation/route_xy                                              controllers.AnyplaceNavigation.getNavigationRouteXY()
 
 # Anyplace API - Mapping
-#POST           /anyplace/mapping/radio/addbuids                             controllers.AnyplaceMapping.addBuidInRssLogs()
-#POST           /anyplace/mapping/pois/temp_url                              controllers.AnyplaceMapping.tempAllPoisWithoutUrl()
+#POST       /anyplace/mapping/radio/addbuids                                           controllers.AnyplaceMapping.addBuidInRssLogs()
+#POST       /anyplace/mapping/pois/temp_url                                            controllers.AnyplaceMapping.tempAllPoisWithoutUrl()
 POST        /anyplace/mapping/accounts/sign                                            controllers.AnyplaceMapping.addAccount()
 POST        /anyplace/mapping/radio/heatmap_building_floor                             controllers.AnyplaceMapping.getRadioHeatmapByBuildingFloor()
 
@@ -44,7 +44,7 @@ POST        /anyplace/position/radio/acces                                      
 
 
 POST        /anyplace/mapping/radio/radio_buid_floor                                   controllers.AnyplaceMapping.getRadioHeatmapBbox()
-#POST           /anyplace/mapping/radio/heatmap                              controllers.AnyplaceMapping.getRadioHeatmap()
+#POST           /anyplace/mapping/radio/heatmap                                        controllers.AnyplaceMapping.getRadioHeatmap()
 POST        /anyplace/mapping/building/coowners                                        controllers.AnyplaceMapping.buildingUpdateCoOwners()
 POST        /anyplace/mapping/building/newowner                                        controllers.AnyplaceMapping.buildingUpdateOwner()
 POST        /anyplace/mapping/building/get                                             controllers.AnyplaceMapping.buildingGetOne()
@@ -100,7 +100,7 @@ POST        /anyplace/floortiles/zip/:buid/:floor_number                        
 # used by the websites
 POST        /anyplace/floorplans64/:buid/:floor_number                                 controllers.AnyplaceMapping.serveFloorPlanBase64( buid: String, floor_number: String )
 POST        /anyplace/floorplans64all/:buid/:floor_number                              controllers.AnyplaceMapping.serveFloorPlanBase64all( buid: String, floor_number: String )
-#POST           /anyplace/floorplans/:buid/:floor_number            controllers.AnyplaceMapping.serveFloorPlanBinary( buid: String, floor_number: String )
+#POST           /anyplace/floorplans/:buid/:floor_number                               controllers.AnyplaceMapping.serveFloorPlanBinary( buid: String, floor_number: String )
 
 
 POST        /anyplace/floortiles/:buid/:floor_number                                   controllers.AnyplaceMapping.serveFloorPlanTilesZipLink( buid: String, floor_number: String )
@@ -146,16 +146,16 @@ GET         /architect                                                          
 GET         /viewer/index.html                                                         controllers.AnyplaceWebApps.serveViewer(file="index.html")
 GET         /viewer/*file                                                              controllers.AnyplaceAssets.at(path="/public", file)
 GET         /viewer/                                                                   controllers.AnyplaceWebApps.serveViewer(file="index.html")
-GET         /viewer                                                                    controllers.AnyplaceWebApps.AddTrailingSlash()
+GET         /viewer   																   controllers.AnyplaceWebApps.AddTrailingSlash()
 
+### DASHBOARD WEBSITE ###                                                                 
+GET         /dashboard/index.html                                                      controllers.AnyplaceWebApps.serveDashboard(file="index.html")
+GET         /dashboard/*file                                                           controllers.AnyplaceAssets.at(path="/public", file)
+GET         /dashboard/                                                                controllers.AnyplaceWebApps.serveDashboard(file="index.html")
+GET         /dashboard 																   controllers.AnyplaceWebApps.AddTrailingSlash()
 
 # Map static resources
 GET         /floortiles/zip/*file                                                      controllers.ExternalAssets.at(path="/floor_plans", file)
-
-## ROOT ##
-GET         /                                                                          controllers.ApplicationAnyplace.index()
-# Redirect all unknown routes to the index page
-GET         /*any                                                                      controllers.ApplicationAnyplace.indexAny(any)
 
 #####################################################################################################
 # SESSION AUTHENTICATION PAGES
@@ -168,3 +168,21 @@ GET         /admin                                                              
 # Android
 GET         /android                                                                   controllers.AnyplaceAndroid.getApks()
 GET         /android/apk/:file                                                         controllers.AnyplaceAndroid.downloadApk(file: String)
+ 
+
+#########################################################################################################
+
+# CUSTOM API
+POST  		/anyplace/history                                      					   controllers.AnyplacePosition.getLocHistoryByObjId()             
+GET         /favicon.ico															   controllers.Assets.at(path="/public", file="favicon.ico")
+POST        /anyplace/mapping/accesspoints_add                                                 controllers.AnyplaceMapping.addAuthorizedAP()
+POST        /anyplace/mapping/accesspoints_all                                        controllers.AnyplaceMapping.getAllAuthorizedAP()
+POST        /anyplace/mapping/accesspoints_by_buid_floor                               controllers.AnyplaceMapping.getAuthorizedAPforBuildingFloor()
+POST        /anyplace/mapping/accesspoints_by_ssid									   controllers.AnyplaceMapping.getAuthorizedAPBySSID()
+
+##########################################################################################################
+
+## ROOT ##
+GET         /                                                                          controllers.ApplicationAnyplace.index()
+# Redirect all unknown routes to the index page
+GET         /*any                                                                      controllers.ApplicationAnyplace.indexAny(any)
