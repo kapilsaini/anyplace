@@ -13,7 +13,7 @@ object AnyPlaceTilerHelper {
 
     private val ANYPLACE_TILER_SCRIPTS_DIR ="anyplace_tiler"
 
-    private val ANYPLACE_TILER_SCRIPT_START = "." + File.separatorChar + ANYPLACE_TILER_SCRIPTS_DIR + File.separatorChar + "start-anyplace-tiler.sh"
+    private val ANYPLACE_TILER_SCRIPT_START = ANYPLACE_TILER_SCRIPTS_DIR + File.separatorChar + "start-anyplace-tiler.sh"
 
     private val FLOOR_PLANS_ROOT_DIR = "floor_plans" + File.separatorChar
 
