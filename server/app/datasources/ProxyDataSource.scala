@@ -382,4 +382,9 @@ class ProxyDataSource private() extends IDatasource {
     mActiveDatabase.deleteNotValidDocuments()
   }
 
+  override def getLocationHistoryByObjId(objid: String): util.List[JsonObject] = {
+    _checkActiveDatasource()
+    mActiveDatabase.getLocationHistoryByObjId(objid)
+  }
+
 }

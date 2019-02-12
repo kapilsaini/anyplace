@@ -8,7 +8,7 @@
       "description": "You can find your API key (access_token) by signing in Anyplace Architect, in the \"More\" section."
     }
   ],
-  "baseurl": "http://geoloc.alstom.hub/anyplace",
+  "baseurl": "http://geoloc.alstom.hub:9000/anyplace",
   "endpoints": [
     {
       "name": "Navigation",
@@ -1142,6 +1142,27 @@
           "http_method": "POST",
           "uri": "/position/estimate_position",
           "parameters": [
+            {
+              "name": "obid",
+              "required": "N",
+              "type": "text",
+              "default": "",
+              "description": "Building ID (buid)"
+            },
+            {
+              "name": "dvid",
+              "required": "N",
+              "type": "text",
+              "default": "",
+              "description": "Building ID (buid)"
+            },
+            {
+              "name": "floor",
+              "required": "Y",
+              "type": "text",
+              "default": "",
+              "description": "Floor number (non-whitespace)"
+            },
             {
               "name": "buid",
               "required": "Y",

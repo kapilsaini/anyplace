@@ -37,6 +37,7 @@ package controllers
 
 import java.io._
 import java.util._
+import play.Play
 
 import com.couchbase.client.java.document.json.{JsonArray, JsonObject}
 import datasources.{DatasourceException, ProxyDataSource}
@@ -992,5 +993,29 @@ object AnyplacePosition extends play.api.mvc.Controller {
       }
 
       inner(request)
+  }
+
+  def getLocHistoryByObjId() = Action {
+    implicit request =>
+      def inner(request: Request[AnyContent]): Result = {
+        val anyReq = new OAuth2Request(request)
+        if (!anyReq.assertJsonBody()) {
+          return AnyResponseHelper.bad_request(AnyResponseHelper.CANNOT_PARSE_BODY_AS_JSON)
+        }
+        val json = anyReq.getJsonBody
+        val objID = (json \ "obid").as[String]
+        LPLogger.info("AnyplaceMapping::getLocHistoryByObjId(): " + objID.toString)
+        try {
+          val lHistory = ProxyDataSource.getIDatasource.getLocationHistoryByObjId(objID)
+          println("lHistory ->" + lHistory)
+          val res = JsonObject.empty()
+          res.put("lHistory", JsonArray.from(lHistory))
+          return AnyResponseHelper.ok(res.toString)
+        } catch {
+          case e: DatasourceException => return AnyResponseHelper.internal_server_error("Server Internal Error [" + e.getMessage + "]")
+        }
+      }
+
+    inner(request)
   }
 }

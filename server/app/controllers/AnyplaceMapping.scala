@@ -65,6 +65,10 @@ import scala.collection.JavaConversions._
 import scala.collection.JavaConverters.iterableAsScalaIterableConverter
 import scala.collection.mutable.ListBuffer
 
+ import play.api.libs.json._ 
+import db_models.LocHistory
+import org.joda.time.{DateTime,DateTimeZone}
+
 object AnyplaceMapping extends play.api.mvc.Controller {
 
   private val ADMIN_ID = "112997031510415584062_google"
@@ -841,9 +845,29 @@ object AnyplaceMapping extends play.api.mvc.Controller {
         if (!requiredMissing.isEmpty)
           return AnyResponseHelper.requiredFieldsMissing(requiredMissing)
 
+        
+        //Customizations
+        val deviceId = (json\"dvid").as[String]
+        val objectId = (json\"obid").validate[String] match {
+          case s: JsSuccess[String] =>
+            if (s.get.isEmpty || s.get.trim.isEmpty)
+              None
+            else
+              Some(s.get)
+          case e: JsError => None
+        }
+        val accessOpt = Json.parse((json\"APs").as[String]).validate[List[JsValue]] match {
+          case s: JsSuccess[List[JsValue]] => {
+            Some(s.get)
+          }
+          case e: JsError => 
+            println("Errors: " + JsError.toJson(e).toString())
+            None
+        }
+        val accessPoints = accessOpt.get
+
         val buid = (json \ "buid").as[String]
         val floor_number = (json \ "floor").as[String]
-        val accessPoints= (json\"APs").as[List[JsValue]]
         val algorithm_choice = (json\"algorithm_choice").as[Int]
 
         val rmapFile = new File("radiomaps_frozen" + AnyplaceServerAPI.URL_SEPARATOR + buid + AnyplaceServerAPI.URL_SEPARATOR +
@@ -864,8 +888,41 @@ object AnyplaceMapping extends play.api.mvc.Controller {
         }
 
         val radioMap:location.RadioMap = new location.RadioMap(rmapFile)
-        Algorithms.ProcessingAlgorithms(latestScanList,radioMap,algorithm_choice)
+        val response = Algorithms.ProcessingAlgorithms(latestScanList, radioMap, algorithm_choice)
         return AnyResponseHelper.ok("Successfully found position.")
+        println("response ->" + response)
+        val lat_long = response.split(" ")
+        /*
+         * Add location history to DB 
+         */
+        val currentTimeinMillis = DateTime.now(DateTimeZone.UTC).getMillis()
+        println("deviceId ->", deviceId, " objectId ->", objectId)
+
+        if (deviceId =="" && objectId == "") {
+          LPLogger.info("Both device Id and Object Id are not available, so skipping adding location history")
+        } else {
+        try{
+          var locHistory: LocHistory = null
+          locHistory = new LocHistory(objectId.getOrElse(""), deviceId, 
+            buid, floor_number, lat_long(0), lat_long(1), currentTimeinMillis.toString,  (json\"APs").as[String])
+          println("generating loc history ID")
+          val locID =  locHistory.getId()
+          println("locid ->", locID)
+          if (!ProxyDataSource.getIDatasource().addJsonDocument(
+              locID, 0, locHistory.toValidCouchJson().toString())) {
+            LPLogger.error("Location history couldn't be added")
+          }
+        } catch {
+          case e: Exception => {
+             LPLogger.error("Error persisting location history [" + e.getMessage + "]")
+          }
+        }
+      }
+        
+        val res = JsonObject.empty()
+        res.put("lat", lat_long(0))
+        res.put("long", lat_long(1))
+        return AnyResponseHelper.ok(res, "Successfully found position.")
       }
 
       inner(request)
@@ -1136,6 +1193,7 @@ object AnyplaceMapping extends play.api.mvc.Controller {
         try {
 
           val buildings = ProxyDataSource.getIDatasource.getAllBuildings
+          LPLogger.info("buildingAll(): " + buildings)
           val res = JsonObject.empty()
           res.put("buildings", buildings)
           try {

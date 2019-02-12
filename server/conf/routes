@@ -168,3 +168,10 @@ GET         /admin                                                              
 # Android
 GET         /android                                                                   controllers.AnyplaceAndroid.getApks()
 GET         /android/apk/:file                                                         controllers.AnyplaceAndroid.downloadApk(file: String)
+
+#####################################################################################
+# CUSTOM API
+
+
+# CUSTOM API
+POST  		/anyplace/history                                      					   controllers.AnyplacePosition.getLocHistoryByObjId()

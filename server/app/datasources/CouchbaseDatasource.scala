@@ -903,11 +903,13 @@ class CouchbaseDatasource private(hostname: String,
         case e: IOException =>
       }
     }
-
+    /*  Commenting dummy code from OpenSource pull
+    *
     val test = JsonObject.empty().put("name", " 星网:")
     val name = " 星网:"
     println(test.toString)
     println(name)
+    */
     buildings
   }
 
@@ -2073,6 +2075,26 @@ class CouchbaseDatasource private(hostname: String,
       }
     }
     true
+  }
+
+  override def getLocationHistoryByObjId(obid: String): List[JsonObject] = {
+    val couchbaseClient = getConnection
+    val viewQuery = ViewQuery.from("loc_history", "location_history").key(JsonArray.from(obid))
+
+    val res = couchbaseClient.query(viewQuery)
+    val result = new ArrayList[JsonObject]()
+    var json: JsonObject = null
+
+    for (row <- res.allRows()) {
+      try {
+        json = row.document().content()
+        result.add(json)
+      } catch {
+        case e: IOException =>
+      }
+    }
+    println("returning rows")
+    result
   }
 
 }
