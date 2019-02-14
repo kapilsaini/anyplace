@@ -70,28 +70,34 @@ object AnyplaceMapping extends play.api.mvc.Controller {
   private val ADMIN_ID = "112997031510415584062_google"
 
   private def verifyOwnerId(authToken: String): String = {
-    //remove the double string qoutes due to json processing
-    val gURL = "https://www.googleapis.com/oauth2/v3/tokeninfo?id_token=" + authToken
-    var res = ""
-    try
-      res = sendGet(gURL)
-    catch {
-      case e: Exception => {
-        LPLogger.error(e.toString)
-        null
+    val verifyBuildingOwnerId = Play.application().configuration().getBoolean("verifyBuildingOwnerId")
+
+    if(verifyBuildingOwnerId != null && verifyBuildingOwnerId) {
+      //remove the double string qoutes due to json processing
+      val gURL = "https://www.googleapis.com/oauth2/v3/tokeninfo?id_token=" + authToken
+      var res = ""
+      try
+        res = sendGet(gURL)
+      catch {
+        case e: Exception => {
+          LPLogger.error(e.toString)
+          null
+        }
       }
+      if (res != null)
+        try {
+          var json = JsonObject.fromJson(res)
+          if (json.get("user_id") != null)
+            return json.get("user_id").toString
+          else if (json.get("sub") != null)
+            return appendToOwnerId(json.get("sub").toString)
+        } catch {
+          case ioe: IOException => null
+        }
+      null
+    } else {
+      return appendToOwnerId(Play.application().configuration().getString("defaultBuildingOwner"))
     }
-    if (res != null)
-      try {
-        var json = JsonObject.fromJson(res)
-        if (json.get("user_id") != null)
-          return json.get("user_id").toString
-        else if (json.get("sub") != null)
-          return appendToOwnerId(json.get("sub").toString)
-      } catch {
-        case ioe: IOException => null
-      }
-    null
   }
 
   //Make the id to the appropriate format

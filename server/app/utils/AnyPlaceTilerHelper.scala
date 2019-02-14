@@ -3,12 +3,15 @@ package utils
 import play.Logger
 import java.io._
 import java.nio.file.Files
+import java.nio.file.Paths
+import java.nio.file.Path
+import java.nio.file.StandardCopyOption
 //remove if not needed
 import scala.collection.JavaConversions._
 
 object AnyPlaceTilerHelper {
 
-    private val ANYPLACE_TILER_SCRIPTS_DIR = "anyplace_tiler"
+    private val ANYPLACE_TILER_SCRIPTS_DIR ="anyplace_tiler"
 
     private val ANYPLACE_TILER_SCRIPT_START = ANYPLACE_TILER_SCRIPTS_DIR + File.separatorChar + "start-anyplace-tiler.sh"
 
@@ -70,31 +73,32 @@ object AnyPlaceTilerHelper {
         val dirS = AnyPlaceTilerHelper.getRootFloorPlansDirFor(buid, floor_number)
         val dir = new File(dirS)
         dir.mkdirs()
-        if (!dir.isDirectory || !dir.canWrite() || !dir.canExecute()) {
+        /*if (!dir.isDirectory || !dir.canWrite() || !dir.canExecute()) {
             throw new AnyPlaceException("Floor plans directory is inaccessible!!!")
-        }
+        }*/
         val name = "fl" + "_" + floor_number
         val dest_f = new File(dir, name)
-        var fout: FileOutputStream = null
-        fout = new FileOutputStream(dest_f)
-        Files.copy(file.toPath(), fout)
-        fout.close()
+        //var fout: FileOutputStream = null
+        //fout = new FileOutputStream(dest_f)
+        Files.copy(file.toPath(), dest_f.toPath(),StandardCopyOption.REPLACE_EXISTING)
+        //fout.close()
         dest_f
     }
 
     def tileImage(imageFile: File, lat: String, lng: String): Boolean = {
-        if (!imageFile.isFile || !imageFile.canRead()) {
+        /*if (!imageFile.isFile || !imageFile.canRead()) {
             return false
-        }
+        }*/
         val imageDir = imageFile.getParentFile
-        if (!imageDir.isDirectory || !imageDir.canWrite() || !imageDir.canRead()) {
+        /*if (!imageDir.isDirectory || !imageDir.canWrite() || !imageDir.canRead()) {
             throw new AnyPlaceException("Server do not have the permissions to tile the passed argument[" +
               imageFile.toString +
               "]")
-        }
+        }*/
         val pb = new ProcessBuilder(ANYPLACE_TILER_SCRIPT_START, imageFile.getAbsolutePath.toString, lat,
             lng, "-DISLOG")
         val log = new File(imageDir, "anyplace_tiler_" + imageFile.getName + ".log")
+
         pb.redirectErrorStream(true)
         pb.redirectOutput(ProcessBuilder.Redirect.appendTo(log))
         try {
@@ -134,18 +138,19 @@ object AnyPlaceTilerHelper {
     }
 
     def tileImageWithZoom(imageFile: File, lat: String, lng: String, zoom:String): Boolean = {
-        if (!imageFile.isFile || !imageFile.canRead()) {
+        /*if (!imageFile.isFile || !imageFile.canRead()) {
             return false
-        }
+        }*/
         val imageDir = imageFile.getParentFile
-        if (!imageDir.isDirectory || !imageDir.canWrite() || !imageDir.canRead()) {
+        /*if (!imageDir.isDirectory || !imageDir.canWrite() || !imageDir.canRead()) {
             throw new AnyPlaceException("Server do not have the permissions to tile the passed argument[" +
               imageFile.toString +
               "]")
-        }
+        }*/
         val pb = new ProcessBuilder(ANYPLACE_TILER_SCRIPT_START, imageFile.getAbsolutePath.toString, lat,
             lng,"-DISLOG",zoom)
         val log = new File(imageDir, "anyplace_tiler_" + imageFile.getName + ".log")
+        //val logPath: Path = Files.createFile(log.toPath())
         pb.redirectErrorStream(true)
         pb.redirectOutput(ProcessBuilder.Redirect.appendTo(log))
         try {

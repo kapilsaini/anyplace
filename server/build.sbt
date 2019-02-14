@@ -1,6 +1,8 @@
 import com.typesafe.sbt.packager.MappingsHelper._
 mappings in Universal ++= directory(baseDirectory.value / "floor_plans")
 
+mappings in Universal ++= directory(baseDirectory.value / "anyplace_tiler")
+
 name := "anyplace_v3"
 
 version := "4.0"
