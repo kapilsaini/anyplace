@@ -24,7 +24,8 @@ app.controller('ControlBarController', ['$scope', '$rootScope', 'AnyplaceService
 
     $scope.anyService = AnyplaceService;
     $scope.gmapService = GMapService;
-
+    //Bypass the google authentication
+    $scope.bypassAuth = true;
     $scope.isAuthenticated = false;
 
     $scope.signInType = "google";
@@ -40,12 +41,21 @@ app.controller('ControlBarController', ['$scope', '$rootScope', 'AnyplaceService
     $scope.owner_id = undefined;
     $scope.displayName = undefined;
 
+    if($scope.bypassAuth){
+        $scope.isAuthenticated = true;    
+        $scope.owner_id = '012345_none';
+        $scope.signInType = "none";
+        $scope.gAuth = []
+        $scope.gAuth.access_token = '012345_none';
+        app.access_token= '012345_none';
+    }
 
     var self = this; //to be able to reference to it in a callback, you could use $scope instead
 
 
     $scope.setAuthenticated = function (bool) {
         $scope.isAuthenticated = bool;
+        $scope.owner_id = '012345_google';
     };
 
     $scope.showFullControls = true;
@@ -77,22 +87,26 @@ app.controller('ControlBarController', ['$scope', '$rootScope', 'AnyplaceService
     };
 
     $scope.onSignIn = function (googleUser) {
+        if(!$scope.bypassAuth)
+        {
+            if ($scope.getCookie("username") === "") {
+                $scope.setCookie("username", "true", 365);
+                location.reload();
+            }
+            console.log(googleUser); //Keshav
+            //location.reload();
+            $scope.setAuthenticated(true);
 
-        if ($scope.getCookie("username") === "") {
-            $scope.setCookie("username", "true", 365);
-            location.reload();
+            $scope.gAuth = gapi.auth2.getAuthInstance().currentUser.get().getAuthResponse();
+
+            $scope.gAuth.access_token = $scope.gAuth.id_token;
+
+            app.access_token = $scope.gAuth.id_token;
+
+            $scope.personLookUp(googleUser);
+
+            console.log($scope.gAuth); //Keshav
         }
-
-        //location.reload();
-        $scope.setAuthenticated(true);
-
-        $scope.gAuth = gapi.auth2.getAuthInstance().currentUser.get().getAuthResponse();
-
-        $scope.gAuth.access_token = $scope.gAuth.id_token;
-
-        app.access_token = $scope.gAuth.id_token;
-
-        $scope.personLookUp(googleUser);
     };
 
 
@@ -104,6 +118,7 @@ app.controller('ControlBarController', ['$scope', '$rootScope', 'AnyplaceService
     window.onSignInFailure = $scope.onSignInFailure;
 
     $scope.personLookUp = function (resp) {
+
         $scope.person = resp.getBasicProfile();
         $scope.person.image = $scope.person.getImageUrl();
         $scope.person.id = $scope.person.getId();
@@ -111,7 +126,7 @@ app.controller('ControlBarController', ['$scope', '$rootScope', 'AnyplaceService
         // compose user id
         $scope.owner_id = $scope.person.id + '_' + $scope.signInType;
         $scope.displayName = $scope.person.displayName;
-
+        console.log("Owner ID is " + $scope.owner_id); //Keshav
         if ($scope.person && $scope.person.id) {
             $scope.$broadcast('loggedIn', []);
         }

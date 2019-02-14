@@ -411,7 +411,7 @@ app.controller('BuildingController', ['$cookieStore', '$scope', '$compile', 'GMa
 
             // set owner id
             building.owner_id = $scope.owner_id;
-
+            console.log("Adding building with owner ID : " + $scope.owner_id); //keshav
             if (!building.owner_id) {
                 _err("Could not authorize user. Please refresh.");
                 return;
@@ -444,7 +444,8 @@ app.controller('BuildingController', ['$cookieStore', '$scope', '$compile', 'GMa
             if (building.owner_id && building.name && building.description && building.is_published && building.url && building.address) {
 
                 var promise = $scope.anyAPI.addBuilding(building);
-
+                window.building_ke = building; //Keshav
+                console.log("Building adding with data : " + building); //Keshav
                 promise.then(
                     function (resp) {
                         // on success
@@ -826,6 +827,7 @@ app.controller('BuildingController', ['$cookieStore', '$scope', '$compile', 'GMa
         buids = buids + "\"" + $scope.example9model[0].id + "\"]";
 
         var jreq = "{" + greeklish + "," + buids + "," + mycuid + "," + des + "," + name + ",\"owner_id\":\"" + $scope.owner_id + "\",\"access_token\":\"" + $scope.gAuth.access_token + "\"}";
+        
         //alert(document.getElementById("Greeklish-OnOff").checked);
         var promise = $scope.anyAPI.addBuildingSet(jreq);
         promise.then(
@@ -898,6 +900,7 @@ app.controller('BuildingController', ['$cookieStore', '$scope', '$compile', 'GMa
             marker.myId = $scope.myMarkerId;
             $scope.myMarkers[marker.myId] = {};
             $scope.myMarkers[marker.myId].model = {
+                access_token:"afdjasfljasdlfjadsf",
                 description: "",
                 name: undefined,
                 is_published: true,
