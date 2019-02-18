@@ -1147,21 +1147,21 @@
               "required": "N",
               "type": "text",
               "default": "",
-              "description": "Building ID (buid)"
+              "description": "Object ID (obid)"
+            },
+            {
+              "name": "objcat",
+              "required": "N",
+              "type": "text",
+              "default": "",
+              "description": "Object Category (objcat)"
             },
             {
               "name": "dvid",
               "required": "N",
               "type": "text",
               "default": "",
-              "description": "Building ID (buid)"
-            },
-            {
-              "name": "floor",
-              "required": "Y",
-              "type": "text",
-              "default": "",
-              "description": "Floor number (non-whitespace)"
+              "description": "Device ID (dvid)"
             },
             {
               "name": "buid",
@@ -1188,6 +1188,28 @@
               "required": "Y",
               "type": "integer",
               "description": "choices: KNN_WKNN_Algorithm (1 for non weighted, 2 for weighted), MAP_MMSE_Algorithm (3 for non weighted, 4 for weighted) "
+            }
+          ]
+        },
+        {
+          "method_name": "Get tracking objects with Categories.",
+          "method_description": "Get tracking objects with Categories.",
+          "http_method": "GET",
+          "uri": "/objcategories",
+          "parameters": []
+        },
+        {
+          "method_name": "Get Location History of the object using Object ID",
+          "method_description": "Get Location History of the object using Object ID. ",
+          "http_method": "POST",
+          "uri": "/history",
+          "parameters": [
+            {
+              "name": "obid",
+              "required": "Y",
+              "type": "text",
+              "default": "",
+              "description": "Object ID (obid)"
             }
           ]
         },

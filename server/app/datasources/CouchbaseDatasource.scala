@@ -890,10 +890,11 @@ class CouchbaseDatasource private(hostname: String,
     val viewQuery = ViewQuery.from("nav", "building_all").includeDocs(true)
     val res = couchbaseClient.query(viewQuery)
     //
-
+    println("Resposne from CB ", res) 
     for (row <- res.allRows()) {
       try {
         val json = row.document().content()
+        println("building json ", json)
         json.removeKey("geometry")
         json.removeKey("owner_id")
         json.removeKey("co_owners")
@@ -2088,6 +2089,44 @@ class CouchbaseDatasource private(hostname: String,
     for (row <- res.allRows()) {
       try {
         json = row.document().content()
+        json.removeKey("radio_map")
+        json.removeKey("obid")
+        json.removeKey("objcat")
+        json.removeKey("lhistid")
+        result.add(json)
+      } catch {
+        case e: IOException =>
+      }
+    }
+    println("returning rows")
+    result
+  }
+
+  override def getLocHistoryObjCat(): List[JsonObject] = {
+    val couchbaseClient = getConnection
+    val viewQuery = ViewQuery.from("loc_history", "location_history_obj_cat").reduce(true)groupLevel(1)
+
+    val res = couchbaseClient.query(viewQuery)
+    val result = new ArrayList[JsonObject]()
+    
+
+    println("[getLocHistoryObjCat]")
+    for (row <- res.allRows()) {
+      try {
+        println("row result key->", row.key, "Value ->" ,row.value)
+        var json: JsonObject = JsonObject.empty()
+
+        //Filter values for uniqueness
+        var temp = new ArrayList[String]()
+        for (t <- row.value.asInstanceOf[JsonArray]) {
+          val tempVal = t.asInstanceOf[String]
+          if (! temp.contains(tempVal)) {
+            temp.add(tempVal)
+          }
+        }
+
+        json.put(row.key.toString, temp)
+        println("json ->", json)
         result.add(json)
       } catch {
         case e: IOException =>

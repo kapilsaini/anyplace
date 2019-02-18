@@ -152,10 +152,6 @@ GET         /viewer                                                             
 # Map static resources
 GET         /floortiles/zip/*file                                                      controllers.ExternalAssets.at(path="/floor_plans", file)
 
-## ROOT ##
-GET         /                                                                          controllers.ApplicationAnyplace.index()
-# Redirect all unknown routes to the index page
-GET         /*any                                                                      controllers.ApplicationAnyplace.indexAny(any)
 
 #####################################################################################################
 # SESSION AUTHENTICATION PAGES
@@ -175,3 +171,10 @@ GET         /android/apk/:file                                                  
 
 # CUSTOM API
 POST  		/anyplace/history                                      					   controllers.AnyplacePosition.getLocHistoryByObjId()
+GET         /anyplace/objcategories													   controllers.AnyplacePosition.getLocHistoryObjCat()
+
+
+## ROOT ##
+GET         /                                                                          controllers.ApplicationAnyplace.index()
+# Redirect all unknown routes to the index page
+GET         /*any                                                                      controllers.ApplicationAnyplace.indexAny(any)

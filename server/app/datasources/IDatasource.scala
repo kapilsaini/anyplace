@@ -170,4 +170,6 @@ trait IDatasource {
 
   def getLocationHistoryByObjId(objId: String): List[JsonObject]
 
+  def getLocHistoryObjCat(): List[JsonObject]
+
   }

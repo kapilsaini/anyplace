@@ -387,4 +387,8 @@ class ProxyDataSource private() extends IDatasource {
     mActiveDatabase.getLocationHistoryByObjId(objid)
   }
 
+  override def getLocHistoryObjCat(): List[JsonObject] = {
+    _checkActiveDatasource()
+    mActiveDatabase.getLocHistoryObjCat()
+  }
 }

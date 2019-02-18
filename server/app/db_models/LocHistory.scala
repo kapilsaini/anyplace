@@ -52,6 +52,7 @@ class LocHistory(hm: HashMap[String, String]) extends AbstractModel {
   def this() {
     this(new HashMap[String, String])
     fields.put("obid", "")
+    fields.put("objcat", "")
     fields.put("dvid", "")
     fields.put("buid", "")
     fields.put("floor", "")
@@ -62,16 +63,17 @@ class LocHistory(hm: HashMap[String, String]) extends AbstractModel {
     fields.put("lhistid", "")
   }
 
-  def this(obid: String, dvid: String, buid: String, floor: String, x: String, y: String, timestamp: String, radiomap: String) {
+  def this(obid: String, objectCat: String, dvid: String, buid: String, floor: String, x: String, y: String, timestamp: String, radiomap: String) {
     this()
     fields.put("obid", obid)
+    fields.put("objcat", objectCat)
     fields.put("dvid", dvid)
     fields.put("buid",buid)
     fields.put("floor", floor)
     fields.put("coordinates_lat", x)
     fields.put("coordinates_lon", y)
     fields.put("timestamp", timestamp)
-    fields.put("radio_map", "")
+    fields.put("radio_map", radiomap)
     this.json = json
   }
 
