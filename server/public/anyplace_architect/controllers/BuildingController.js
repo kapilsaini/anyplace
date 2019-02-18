@@ -121,6 +121,7 @@ app.controller('BuildingController', ['$cookieStore', '$scope', '$compile', 'GMa
         //_suc('Successfully logged in.');
         $scope.fetchAllBuildings();
         $scope.fetchAllCampus();
+        console.log("Logged in");
         //$scope.fetchAllPoisTypes();
     });
 
@@ -411,7 +412,7 @@ app.controller('BuildingController', ['$cookieStore', '$scope', '$compile', 'GMa
 
             // set owner id
             building.owner_id = $scope.owner_id;
-            console.log("Adding building with owner ID : " + $scope.owner_id); //keshav
+            
             if (!building.owner_id) {
                 _err("Could not authorize user. Please refresh.");
                 return;
@@ -444,8 +445,7 @@ app.controller('BuildingController', ['$cookieStore', '$scope', '$compile', 'GMa
             if (building.owner_id && building.name && building.description && building.is_published && building.url && building.address) {
 
                 var promise = $scope.anyAPI.addBuilding(building);
-                window.building_ke = building; //Keshav
-                console.log("Building adding with data : " + building); //Keshav
+
                 promise.then(
                     function (resp) {
                         // on success
@@ -1788,5 +1788,7 @@ app.controller('BuildingController', ['$cookieStore', '$scope', '$compile', 'GMa
 
         window.onload = showWelcomeMessage;
     }
-
+    if($scope.bypassAuth){
+        $scope.$broadcast('loggedIn', []);
+    }
 }]);

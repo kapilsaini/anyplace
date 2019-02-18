@@ -48,6 +48,11 @@ app.controller('ControlBarController', ['$scope', '$rootScope', 'AnyplaceService
         $scope.gAuth = []
         $scope.gAuth.access_token = '012345_none';
         app.access_token= '012345_none';
+        // $scope.$broadcast('loggedIn', []);
+    }else{
+        // // document.write('<meta name="google-signin-scope" content="profile email">');
+        // document.write('<meta name="google-signin-client_id" content="27495094074-mrl63ubqnk90hhl4jkp7ii2nnh0q3hti.apps.googleusercontent.com">');
+        // document.write('<script src="https://apis.google.com/js/platform.js" async defer></script>');
     }
 
     var self = this; //to be able to reference to it in a callback, you could use $scope instead
@@ -55,7 +60,6 @@ app.controller('ControlBarController', ['$scope', '$rootScope', 'AnyplaceService
 
     $scope.setAuthenticated = function (bool) {
         $scope.isAuthenticated = bool;
-        $scope.owner_id = '012345_google';
     };
 
     $scope.showFullControls = true;
