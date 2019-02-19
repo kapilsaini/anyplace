@@ -660,7 +660,7 @@ class CouchbaseDatasource private(hostname: String,
     val startkey = JsonArray.from(buid, floor,timestampX,"","")
     val endkey = JsonArray.from(buid, floor,timestampY,"90", "180")
 
-    val viewQuery = ViewQuery.from("heatmaps", "heatmap_by_floor_building_timestamp").startKey(startkey).endKey(endkey).group(true).reduce(true).inclusiveEnd(true)
+    val viewQuery = ViewQuery.from("heatmaps", "heatmap_by_floor_building").startKey(startkey).endKey(endkey).group(true).reduce(true).inclusiveEnd(true)
     val res = couchbaseClient.query(viewQuery)
 
     var json: JsonObject = null
@@ -861,7 +861,7 @@ class CouchbaseDatasource private(hostname: String,
     val couchbaseClient = getConnection
     val startkey = JsonArray.from(buid, floor,"000000000000000")
     val endkey = JsonArray.from(buid, floor,"999999999999999")
-    val viewQuery = ViewQuery.from("heatmaps", "timestamp_by_floor_building").startKey(startkey).endKey(endkey).group(true)
+    val viewQuery = ViewQuery.from("heatmaps", "heatmap_by_floor_building").startKey(startkey).endKey(endkey).group(true)
     val res = couchbaseClient.query(viewQuery)
 
     println("couchbase results: " + res.totalRows())
