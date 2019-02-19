@@ -148,7 +148,7 @@ app.service('GMapService', function () {
 
 
     self.gmap = new google.maps.Map(element, {
-        center: new google.maps.LatLng(57, 21),
+        center: new google.maps.LatLng(12.3591448, 76.597144),
         zoomControl: true,
         zoomControlOptions: {
             style: google.maps.ZoomControlStyle.LARGE,
@@ -157,7 +157,7 @@ app.service('GMapService', function () {
         scaleControl: true,
         streetViewControl: false,
         overviewMapControl: true,
-        zoom: 3,
+        zoom: 17,
         mapTypeId: mapTypeId,
         mapTypeControlOptions: {
             mapTypeIds: ['OSM', /* 'CartoDark',*/ 'CartoLight', /* 'coordinate',*/ 'roadmap', 'satellite'],
