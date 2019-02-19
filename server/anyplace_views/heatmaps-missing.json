@@ -1,0 +1,7 @@
+{
+  "views": {
+    "timestamp_by_floor_building": {
+      "map": "function (doc, meta) { if (doc.buid && doc.floor && doc.rss && doc.MAC && doc.heading && doc.x && doc.y) { emit([doc.buid, doc.floor, doc.x, doc.y], doc.rss)};}"
+    }
+  }
+}

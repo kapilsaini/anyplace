@@ -1,0 +1,14 @@
+{
+  "views": {
+    "location_history": {
+         "map": "function (doc, meta) {if( doc.lhistid && doc.obid) emit([doc.obid], {\"id\":doc.lhistid, \"obid\":doc.obid, \"dvid\":doc.dvid,\"building\": doc.buid,\"floor\":doc.floor, \"lat\":doc.coordinates_lat, \"long\":doc.coordinates_lon,\"timestamp\":doc.timestamp}); }"
+     },
+     "location_history_by_time": {
+         "map": "function (doc, meta) {if( doc.lhistid && doc.obid) emit([doc.obid, doc.timestamp], {\"id\":doc.lhistid, \"obid\":doc.obid, \"dvid\":doc.dvid,\"building\": doc.buid,\"floor\":doc.floor, \"lat\":doc.coordinates_lat, \"long\":doc.coordinates_lon,\"timestamp\":doc.timestamp}); }"
+     },
+     "location_history_obj_cat": {
+      "map": "function (doc, meta) {if( doc.lhistid && doc.objcat) emit(doc.objcat, doc.obid); }",
+      "reduce": "function reduce(key, values, rereduce) {var merged = [].concat.apply([], values);  return merged;}"
+    }
+  }
+}

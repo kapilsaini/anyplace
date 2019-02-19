@@ -37,6 +37,7 @@ package controllers
 
 import java.io._
 import java.util._
+import play.Play
 
 import com.couchbase.client.java.document.json.{JsonArray, JsonObject}
 import datasources.{DatasourceException, ProxyDataSource}
@@ -49,6 +50,9 @@ import play.libs.F
 import radiomapserver.RadioMap
 import radiomapserver.RadioMap.RadioMap
 import utils._
+
+import play.api.libs.json.Json
+import play.api.libs.json._
 
 import scala.collection.JavaConversions._
 
@@ -993,4 +997,75 @@ object AnyplacePosition extends play.api.mvc.Controller {
 
       inner(request)
   }
+
+  def getLocHistoryByObjId() = Action {
+    implicit request =>
+      def inner(request: Request[AnyContent]): Result = {
+        val anyReq = new OAuth2Request(request)
+        if (!anyReq.assertJsonBody()) {
+          return AnyResponseHelper.bad_request(AnyResponseHelper.CANNOT_PARSE_BODY_AS_JSON)
+        }
+        val json = anyReq.getJsonBody
+        val objID = (json \ "obid").as[String]
+        LPLogger.info("AnyplaceMapping::getLocHistoryByObjId(): " + objID.toString)
+        try {
+          val lHistory = ProxyDataSource.getIDatasource.getLocationHistoryByObjId(objID)
+          println("lHistory ->" + lHistory.toString)
+          //println("Sorting")
+          // val sortedList = lHistory.sort(o => o.)
+          // val srtres = sort(lHistory.toString)
+          val res = JsonObject.empty()
+          res.put("lHistory", lHistory)
+          return AnyResponseHelper.ok(res.toString)
+        } catch {
+          case e: DatasourceException => return AnyResponseHelper.internal_server_error("Server Internal Error [" + e.getMessage + "]")
+        }
+      }
+
+    inner(request)
+  }
+
+  def getLocHistoryObjCat() = Action {
+    implicit request =>
+      def inner(request: Request[AnyContent]): Result = {
+        val anyReq = new OAuth2Request(request)
+        LPLogger.info("AnyplaceMapping::getLocHistoryObjCat")
+        try {
+          val objcatList = ProxyDataSource.getIDatasource.getLocHistoryObjCat()
+          println("obj category ->" + objcatList.toString)
+          val res = JsonObject.empty()
+          res.put("categories", objcatList)
+          return AnyResponseHelper.ok(res.toString)
+        } catch {
+          case e: DatasourceException => return AnyResponseHelper.internal_server_error("Server Internal Error [" + e.getMessage + "]")
+        }
+      }
+
+    inner(request)
+  }
+/*
+  def sort(json: String): String = {
+    val root: JsValue = Json.parse(json)
+    println("root ->", root)
+    val newRoot = sortElements(root)
+    println("newRoot ->", newRoot.toString)
+    newRoot.toString
+  }
+
+  def sortElements(root: JsValue): JsValue = root match {
+    case obj: JsObject => {
+      println("sortElements obj", obj)
+      JsObject(obj.fields.sortBy(e => {
+        println("e =>", e)
+        e._2.isInstanceOf[JsObject]).map(t => (t._1, sortElements(t._2))))
+    }
+    case array: JsArray => {
+      println("sortElements array", array)
+      JsArray(array.value.map(e => sortElements(e)))
+    }
+    case other => {
+      println("sortElements others", other)
+      other
+    }
+  }*/
 }

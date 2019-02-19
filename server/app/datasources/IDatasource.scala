@@ -168,4 +168,8 @@ trait IDatasource {
 
   def deleteNotValidDocuments(): Boolean
 
+  def getLocationHistoryByObjId(objId: String): List[JsonObject]
+
+  def getLocHistoryObjCat(): List[JsonObject]
+
   }

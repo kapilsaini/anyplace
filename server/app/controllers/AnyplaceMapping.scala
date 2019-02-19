@@ -65,6 +65,10 @@ import scala.collection.JavaConversions._
 import scala.collection.JavaConverters.iterableAsScalaIterableConverter
 import scala.collection.mutable.ListBuffer
 
+ import play.api.libs.json._ 
+import db_models.LocHistory
+import org.joda.time.{DateTime,DateTimeZone}
+
 object AnyplaceMapping extends play.api.mvc.Controller {
 
   private val ADMIN_ID = "112997031510415584062_google"
@@ -841,11 +845,47 @@ object AnyplaceMapping extends play.api.mvc.Controller {
         if (!requiredMissing.isEmpty)
           return AnyResponseHelper.requiredFieldsMissing(requiredMissing)
 
+        
+        //Customizations
+        val deviceId = (json\"dvid").as[String]
+        println("deviceId", deviceId)
+        val objectId = (json\"obid").validate[String] match {
+          case s: JsSuccess[String] =>
+            if (s.get.isEmpty || s.get.trim.isEmpty)
+              None
+            else
+              Some(s.get)
+          case e: JsError => None
+        }
+        println("objectId", objectId)
+        val objectCat = (json\"objcat").validate[String] match {
+          case s: JsSuccess[String] =>
+            if (s.get.isEmpty || s.get.trim.isEmpty)
+              None
+            else
+              Some(s.get)
+          case e: JsError => None
+        }
+        println("objectCat", objectCat)
+        val accessOpt = Json.parse((json\"APs").as[String]).validate[List[JsValue]] match {
+          case s: JsSuccess[List[JsValue]] => {
+            Some(s.get)
+          }
+          case e: JsError => 
+            println("accessOpt Errors: " + JsError.toJson(e).toString())
+            None
+        }
+        println("accessOpt", accessOpt)
+        val accessPoints = accessOpt.get
+
+        println("accessPoints", accessPoints)
+
         val buid = (json \ "buid").as[String]
         val floor_number = (json \ "floor").as[String]
-        val accessPoints= (json\"APs").as[List[JsValue]]
-        val algorithm_choice = (json\"algorithm_choice").as[Int]
-
+        println("floor_number", floor_number)
+        val algorithm_choice = (json\"algorithm_choice").as[String]
+        println("algorithm_choice", algorithm_choice)
+/*
         val rmapFile = new File("radiomaps_frozen" + AnyplaceServerAPI.URL_SEPARATOR + buid + AnyplaceServerAPI.URL_SEPARATOR +
           floor_number+AnyplaceServerAPI.URL_SEPARATOR+ "indoor-radiomap-mean.txt")
 
@@ -864,8 +904,44 @@ object AnyplaceMapping extends play.api.mvc.Controller {
         }
 
         val radioMap:location.RadioMap = new location.RadioMap(rmapFile)
-        Algorithms.ProcessingAlgorithms(latestScanList,radioMap,algorithm_choice)
-        return AnyResponseHelper.ok("Successfully found position.")
+        val response = Algorithms.ProcessingAlgorithms(latestScanList, radioMap, algorithm_choice)
+
+*/
+val response = "12.989 7.980"        
+        //return AnyResponseHelper.ok("Successfully found position.")
+        println("response ->" + response)
+        val lat_long = response.split(" ")
+        /*
+         * Add location history to DB 
+         */
+        val currentTimeinMillis = DateTime.now(DateTimeZone.UTC).getMillis()
+        println("deviceId ->", deviceId, " objectId ->", objectId, "ObjectCat ->", objectCat )
+
+        if (deviceId =="" && objectId == "") {
+          LPLogger.info("Both device Id and Object Id are not available, so skipping adding location history")
+        } else {
+          try{
+            var locHistory: LocHistory = null
+            locHistory = new LocHistory(objectId.getOrElse(""), objectCat.getOrElse(""), deviceId, 
+              buid, floor_number, lat_long(0), lat_long(1), currentTimeinMillis.toString,  (json\"APs").as[String])
+            println("generating loc history ID")
+            val locID =  locHistory.getId()
+            println("locid ->", locID)
+            if (!ProxyDataSource.getIDatasource().addJsonDocument(
+                locID, 0, locHistory.toValidCouchJson().toString())) {
+              LPLogger.error("Location history couldn't be added")
+            }
+          } catch {
+            case e: Exception => {
+               LPLogger.error("Error persisting location history [" + e.getMessage + "]")
+            }
+          }
+        }
+        
+        val res = JsonObject.empty()
+        res.put("lat", lat_long(0))
+        res.put("long", lat_long(1))
+        return AnyResponseHelper.ok(res, "Successfully found position.")
       }
 
       inner(request)
@@ -1136,8 +1212,10 @@ object AnyplaceMapping extends play.api.mvc.Controller {
         try {
 
           val buildings = ProxyDataSource.getIDatasource.getAllBuildings
+          LPLogger.info("buildingAll(): " + buildings)
           val res = JsonObject.empty()
           res.put("buildings", buildings)
+          println("BuildingAll response" , res.toString)
           try {
             gzippedJSONOk(res.toString)
           }
@@ -2960,9 +3038,6 @@ object AnyplaceMapping extends play.api.mvc.Controller {
     rm_mean.ConstructRadioMap(inFile = new File(radiomap_mean_filename))
     return Option[RadioMapMean](rm_mean)
   }
-
-
-
 
   //  private def getRadioMapMeanByBuildingFloor(buid: String, floor_number: String) : Option[RadioMapMean] = {
   //    val rmapDir = new File("radiomaps_frozen" + File.separatorChar + buid + File.separatorChar + floor_number)
