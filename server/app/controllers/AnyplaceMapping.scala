@@ -883,9 +883,9 @@ object AnyplaceMapping extends play.api.mvc.Controller {
         val buid = (json \ "buid").as[String]
         val floor_number = (json \ "floor").as[String]
         println("floor_number", floor_number)
-        val algorithm_choice = (json\"algorithm_choice").as[String]
+        val algorithm_choice = Integer.parseInt((json\"algorithm_choice").as[String])
         println("algorithm_choice", algorithm_choice)
-/*
+
         val rmapFile = new File("radiomaps_frozen" + AnyplaceServerAPI.URL_SEPARATOR + buid + AnyplaceServerAPI.URL_SEPARATOR +
           floor_number+AnyplaceServerAPI.URL_SEPARATOR+ "indoor-radiomap-mean.txt")
 
@@ -894,7 +894,7 @@ object AnyplaceMapping extends play.api.mvc.Controller {
              AnyplacePosition.updateFrozenRadioMap(buid, floor_number)
         }
 
-        val latestScanList: util.ArrayList[location.LogRecord] = null
+        val latestScanList: util.ArrayList[location.LogRecord] = new util.ArrayList[location.LogRecord]()
         var i=0
         for (i <- 0 until accessPoints.size) {
           val bssid= (accessPoints(i) \ "bssid").as[String]
@@ -906,9 +906,9 @@ object AnyplaceMapping extends play.api.mvc.Controller {
         val radioMap:location.RadioMap = new location.RadioMap(rmapFile)
         val response = Algorithms.ProcessingAlgorithms(latestScanList, radioMap, algorithm_choice)
 
-*/
-val response = "12.989 7.980"        
-        //return AnyResponseHelper.ok("Successfully found position.")
+
+//val response = "12.989 7.980"        
+        
         println("response ->" + response)
         val lat_long = response.split(" ")
         /*
@@ -917,7 +917,7 @@ val response = "12.989 7.980"
         val currentTimeinMillis = DateTime.now(DateTimeZone.UTC).getMillis()
         println("deviceId ->", deviceId, " objectId ->", objectId, "ObjectCat ->", objectCat )
 
-        if (deviceId =="" && objectId == "") {
+        if (deviceId == "" && objectId == None) {
           LPLogger.info("Both device Id and Object Id are not available, so skipping adding location history")
         } else {
           try{
@@ -3086,7 +3086,95 @@ val response = "12.989 7.980"
   //    rm.ConstructRadioMap(inFile = new File(radiomap_mean_filename))
   //    return Option[RadioMapMean](rm)
   //  }
+
+def addAuthorizedAP() = Action {
+    implicit request =>
+    def inner(request: Request[AnyContent]): Result = {
+      val anyReq = new OAuth2Request(request)
+      if (!anyReq.assertJsonBody()) return AnyResponseHelper.bad_request(AnyResponseHelper.CANNOT_PARSE_BODY_AS_JSON)
+      var json = anyReq.getJsonBody
+      LPLogger.info("AnyplaceAccounts::addAuthorizedAP():: ")
+      val notFound = JsonUtils.requirePropertiesInJson(json,"aplist", "buid", "floor_number")
+      if (!notFound.isEmpty) return AnyResponseHelper.requiredFieldsMissing(notFound)
+    
+      val buid = (json\"buid").as[String]
+      val floor = (json\"floor_number").as[String]
+
+      Json.parse((json\"aplist").as[String]).validate[List[JsValue]] match {
+        case s: JsSuccess[List[JsValue]] => {
+          s.get map { apoint =>
+            println("access point from list -> " + apoint)
+            try {
+              val ssid = (apoint\"ssid").as[String]
+              val accessPoint = new AccessPoint(ssid, buid, floor)
+              ProxyDataSource.getIDatasource.addJsonDocument(accessPoint.getId, 0, accessPoint.toValidCouchJson().toString)
+            } catch {
+              case e: DatasourceException => return AnyResponseHelper.internal_server_error("Server Internal Error [" + e.getMessage + "]")
+            }
+          }
+
+          //Refresh Radiomap files
+
+
+        }
+        case e: JsError => 
+          println("Errors: " + JsError.toJson(e).toString())
+      }
+
+
+
+      return AnyResponseHelper.ok("New accessPoint added.")
+    }
+    inner(request)
+  }
+
+
+  def getAllAuthorizedAP() = Action {
+    implicit request =>
+    def inner(request: Request[AnyContent]): Result = {
+      LPLogger.info("AnyplaceMapping::getAllAuthorizedAP")
+      try {
+        val accesspoints = ProxyDataSource.getIDatasource.getAllAutAccessPoints()
+        val res = JsonObject.empty()
+        res.put("accesspoints", JsonArray.from(accesspoints))
+        return AnyResponseHelper.ok(res.toString)
+      } catch {
+        case e: DatasourceException => return AnyResponseHelper.internal_server_error("Server Internal Error [" + e.getMessage + "]")
+      }
+    } 
+    inner(request)
+  }
+
+  def getAuthorizedAPBySSID(ssid: String) = Action {
+    implicit request =>
+    def inner(request: Request[AnyContent]): Result = {
+      LPLogger.info("AnyplaceMapping::getAuthorizedAPBySSID::"+ssid)
+      try {
+        val accesspoints = ProxyDataSource.getIDatasource.getAutAccessPointsBySSID(ssid)
+        val res = JsonObject.empty()
+        res.put("accesspoints", JsonArray.from(accesspoints))
+        return AnyResponseHelper.ok(res.toString)
+      } catch {
+        case e: DatasourceException => return AnyResponseHelper.internal_server_error("Server Internal Error [" + e.getMessage + "]")
+      }
+    } 
+    inner(request)
+  }
+
+
+  def getAuthorizedAPforBuildingFloor(buid: String, floor_number: String) = Action {
+    implicit request =>
+    def inner(request: Request[AnyContent]): Result = {
+      LPLogger.info("AnyplaceMapping::getAuthorizedAPforBuildingFloor::"+buid+"::"+floor_number)
+      try {
+        val accesspoints = ProxyDataSource.getIDatasource.getAutAccessPointsByBuildingFloor(buid, floor_number)
+        val res = JsonObject.empty()
+        res.put("accesspoints", JsonArray.from(accesspoints))
+        return AnyResponseHelper.ok(res.toString)
+      } catch {
+        case e: DatasourceException => return AnyResponseHelper.internal_server_error("Server Internal Error [" + e.getMessage + "]")
+      }
+    } 
+    inner(request)
+  }
 }
-
-
-

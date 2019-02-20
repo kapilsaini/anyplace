@@ -391,4 +391,24 @@ class ProxyDataSource private() extends IDatasource {
     _checkActiveDatasource()
     mActiveDatabase.getLocHistoryObjCat()
   }
+
+   override def getAutAccessPointsBySSID(ssid: String): util.List[JsonObject] = {
+    _checkActiveDatasource()
+    mActiveDatabase.getAutAccessPointsBySSID(ssid)
+  }
+
+  override def getAutAccessPointsByBuildingFloor(buid: String, floor: String): util.List[JsonObject] = {
+    _checkActiveDatasource()
+    mActiveDatabase.getAutAccessPointsByBuildingFloor(buid, floor)
+  }
+
+  override def getAllAutAccessPoints(): util.List[JsonObject] = {
+    _checkActiveDatasource()
+    mActiveDatabase.getAllAutAccessPoints()
+  }
+
+  override def dumpAuthorizedRssLogEntriesByBuildingFloor(outFile: FileOutputStream, buid: String, floor_number: String): Long = {
+    _checkActiveDatasource()
+    mActiveDatabase.dumpAuthorizedRssLogEntriesByBuildingFloor(outFile, buid, floor_number)
+  }
 }

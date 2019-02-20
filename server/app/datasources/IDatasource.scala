@@ -172,4 +172,12 @@ trait IDatasource {
 
   def getLocHistoryObjCat(): List[JsonObject]
 
+  def getAutAccessPointsBySSID(ssid: String): List[JsonObject]
+
+  def getAutAccessPointsByBuildingFloor(buid: String, floor: String): List[JsonObject]
+
+  def getAllAutAccessPoints(): List[JsonObject]
+
+  def dumpAuthorizedRssLogEntriesByBuildingFloor(outFile: FileOutputStream, buid: String, floor_number: String): Long
+
   }

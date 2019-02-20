@@ -1,0 +1,15 @@
+{
+  "views": {
+    "auth_ap_by_ssid": {
+        "map": "function (doc, meta) {if( doc.apid) emit([doc.apid], {\"apid\":doc.apid, \"building\": doc.buid,\"floor\":doc.floor}); }"
+     },
+
+    "auth_ap_by_buid_floor": {
+    	"map": "function (doc, meta) {if( doc.apid) emit([doc.buid, doc.floor], {\"apid\":doc.apid}); }"
+    },
+
+    "auth_ap_all": {
+    	"map": "function (doc, meta) {if( doc.apid) emit([], {\"apid\":doc.apid, \"building\": doc.buid,\"floor\":doc.floor}); }"
+    }
+  }
+}

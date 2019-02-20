@@ -285,7 +285,11 @@ object AnyplacePosition extends play.api.mvc.Controller {
         }
         var floorFetched: Long = 0l
         try {
-          floorFetched = ProxyDataSource.getIDatasource.dumpRssLogEntriesByBuildingFloor(fout, buid, floor_number)
+          if (Play.application().configuration().getBoolean("filterAccessPoints")) {
+            floorFetched = ProxyDataSource.getIDatasource.dumpAuthorizedRssLogEntriesByBuildingFloor(fout, buid, floor_number)
+          } else {
+            floorFetched = ProxyDataSource.getIDatasource.dumpRssLogEntriesByBuildingFloor(fout, buid, floor_number)
+          }
           try {
             fout.close()
           } catch {
@@ -402,7 +406,11 @@ object AnyplacePosition extends play.api.mvc.Controller {
           }
           var floorFetched: Long = 0l
           try {
-            floorFetched = ProxyDataSource.getIDatasource.dumpRssLogEntriesByBuildingFloor(fout, buid, floor_number)
+            if (Play.application().configuration().getBoolean("filterAccessPoints")) {
+              floorFetched = ProxyDataSource.getIDatasource.dumpAuthorizedRssLogEntriesByBuildingFloor(fout, buid, floor_number)
+            } else {
+              floorFetched = ProxyDataSource.getIDatasource.dumpRssLogEntriesByBuildingFloor(fout, buid, floor_number)
+            }
             try {
               fout.close()
             } catch {
@@ -689,7 +697,11 @@ object AnyplacePosition extends play.api.mvc.Controller {
     }
     var floorFetched: Long = 0l
     try {
-      floorFetched = ProxyDataSource.getIDatasource.dumpRssLogEntriesByBuildingFloor(fout, buid, floor_number)
+      if (Play.application().configuration().getBoolean("filterAccessPoints")) {
+        floorFetched = ProxyDataSource.getIDatasource.dumpAuthorizedRssLogEntriesByBuildingFloor(fout, buid, floor_number)
+      } else {
+        floorFetched = ProxyDataSource.getIDatasource.dumpRssLogEntriesByBuildingFloor(fout, buid, floor_number)
+      }
       try {
         fout.close()
       } catch {

@@ -2084,6 +2084,8 @@ class CouchbaseDatasource private(hostname: String,
 
     val res = couchbaseClient.query(viewQuery)
     val result = new ArrayList[JsonObject]()
+    val sortedResult = new ArrayList[JsonObject]()
+
     var json: JsonObject = null
 
     for (row <- res.allRows()) {
@@ -2098,6 +2100,13 @@ class CouchbaseDatasource private(hostname: String,
         case e: IOException =>
       }
     }
+    println("Pre sorted", result)
+    
+    //val comparator = new Comparator<JsonObject>()
+
+    //sortedResult = Collections.sort( result, new Comparator<JsonObject>() {
+
+    println("Sorted", sortedResult)
     println("returning rows")
     result
   }
@@ -2136,4 +2145,107 @@ class CouchbaseDatasource private(hostname: String,
     result
   }
 
+  override def getAllAutAccessPoints(): List[JsonObject] = {
+    val couchbaseClient = getConnection
+    val viewQuery = ViewQuery.from("auth_ap", "auth_ap_all")
+
+    val res = couchbaseClient.query(viewQuery)
+    val result = new ArrayList[JsonObject]()
+    var json: JsonObject = null
+
+    for (row <- res.allRows()) {
+      try {
+        json = row.document().content()
+        result.add(json)
+      } catch {
+        case e: IOException =>
+      }
+    }
+    result
+  }
+
+
+  override def getAutAccessPointsBySSID(ssid: String): List[JsonObject] = {
+    val couchbaseClient = getConnection
+    val viewQuery = ViewQuery.from("auth_ap", "auth_ap_by_ssid").key(JsonArray.from(ssid))
+
+    val res = couchbaseClient.query(viewQuery)
+    val result = new ArrayList[JsonObject]()
+    var json: JsonObject = null
+
+    for (row <- res.allRows()) {
+      try {
+        json = row.document().content()
+        result.add(json)
+      } catch {
+        case e: IOException =>
+      }
+    }
+    result
+  }
+
+  override def getAutAccessPointsByBuildingFloor(buid: String, floor: String): List[JsonObject] = {
+    val couchbaseClient = getConnection
+    val viewQuery = ViewQuery.from("auth_ap", "auth_ap_by_buid_floor").key(JsonArray.from(buid, floor))
+
+    val res = couchbaseClient.query(viewQuery)
+    val result = new ArrayList[JsonObject]()
+    var json: JsonObject = null
+
+    println("totalRows -> " + res.totalRows)
+    for (row <- res.allRows()) {
+      println("Processing row")
+      try {
+        json = row.document().content()
+        result.add(json)
+      } catch {
+        case e: IOException =>
+      }
+    }
+    result
+  }
+   
+
+  override def dumpAuthorizedRssLogEntriesByBuildingFloor(outFile: FileOutputStream, buid: String, floor_number: String): Long = {
+    LPLogger.info("CouchbaseDatasource::dumpAuthorizedRssLogEntriesByBuildingFloor")
+    val accessPointsJson = getAutAccessPointsByBuildingFloor(buid, floor_number)
+    val accessPoints = accessPointsJson.map{ jsObj => jsObj.getString("ssid")}
+    val accessPointsList = accessPoints.toList
+    println("Filterd access points -> " + accessPointsList)
+
+    val writer = new PrintWriter(outFile)
+    val couchbaseClient = getConnection
+    val queryLimit = 10000
+    var totalFetched = 0
+    var currentFetched: Int = 0
+    var rssEntry: JsonObject = null
+
+    var viewQuery = ViewQuery.from("radio", "raw_radio_building_floor").key(JsonArray.from(buid, floor_number)).includeDocs(true)
+
+    do {
+      viewQuery = ViewQuery.from("radio", "raw_radio_building_floor").key(JsonArray.from(buid, floor_number)).includeDocs(true).limit(queryLimit).skip(totalFetched)
+
+      val res = couchbaseClient.query(viewQuery)
+      if (!(res.totalRows() > 0)) return totalFetched
+      currentFetched = 0
+
+      for (row <- res.allRows()) {
+        currentFetched += 1
+        try {
+          rssEntry = row.document().content()
+          if (accessPointsList.contains(rssEntry.getString("MAC"))){
+            println("rssEntry ->" + rssEntry.getString("MAC"))
+            writer.println(RadioMapRaw.toRawRadioMapRecord(rssEntry))
+          }
+        } catch {
+          case e: IOException => //continue
+        }
+      }
+      totalFetched += currentFetched
+      LPLogger.info("total fetched: " + totalFetched)
+    } while (currentFetched >= queryLimit)
+    writer.flush()
+    writer.close()
+    totalFetched
+  }
 }

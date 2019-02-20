@@ -85,7 +85,7 @@ public class Algorithms {
 	}
 	
 	private static String MAP_MMSE_Algorithm(RadioMap RM, ArrayList<String> Observed_RSS_Values, String parameter, boolean isWeighted) {
-
+        System.out.println("MAP_MMSE_Algorithm "+isWeighted);
 		ArrayList<String> RSS_Values;
 		double curResult = 0.0d;
 		String myLocation = null;
@@ -219,9 +219,9 @@ public class Algorithms {
 
 	private static String KNN_WKNN_Algorithm(RadioMap RM, ArrayList<String> Observed_RSS_Values, String parameter,
 			boolean isWeighted) {
-
+        System.out.println("KNN_WKNN_Algorithm "+isWeighted);
 		ArrayList<String> RSS_Values;
-		float curResult = 0;
+		double curResult = 0;
 		ArrayList<LocDistance> LocDistance_Results_List = new ArrayList<LocDistance>();
 		String myLocation = null;
 		int K;
@@ -237,8 +237,7 @@ public class Algorithms {
 		for (String location : RM.getLocationRSS_HashMap().keySet()) {
 			RSS_Values = RM.getLocationRSS_HashMap().get(location);
 			curResult = calculateEuclideanDistance(RSS_Values, Observed_RSS_Values);
-
-			if (curResult == Float.NEGATIVE_INFINITY)
+			if (curResult == Double.NEGATIVE_INFINITY)
 				return null;
 
 			LocDistance_Results_List.add(0, new LocDistance(curResult, location));
@@ -271,7 +270,7 @@ public class Algorithms {
 		double WeightedSumY = 0.0f;
 
 		String[] LocationArray = new String[2];
-		float x, y;
+		double x, y;
 
 		int K_Min = K < LocDistance_Results_List.size() ? K : LocDistance_Results_List.size();
 
@@ -285,8 +284,8 @@ public class Algorithms {
 			LocationArray = LocDistance_Results_List.get(i).getLocation().split(" ");
 
 			try {
-				x = Float.valueOf(LocationArray[0].trim()).floatValue();
-				y = Float.valueOf(LocationArray[1].trim()).floatValue();
+				x = Double.valueOf(LocationArray[0].trim());
+				y = Double.valueOf(LocationArray[1].trim());
 			} catch (Exception e) {
 				return null;
 			}
@@ -305,11 +304,11 @@ public class Algorithms {
 
 	private static String calculateAverageKDistanceLocations(ArrayList<LocDistance> LocDistance_Results_List, int K) {
 
-		float sumX = 0.0f;
-		float sumY = 0.0f;
+		double sumX = 0.0f;
+		double sumY = 0.0f;
 
 		String[] LocationArray = new String[2];
-		float x, y;
+		double x, y;
 
 		int K_Min = K < LocDistance_Results_List.size() ? K : LocDistance_Results_List.size();
 
@@ -318,8 +317,8 @@ public class Algorithms {
 			LocationArray = LocDistance_Results_List.get(i).getLocation().split(" ");
 
 			try {
-				x = Float.valueOf(LocationArray[0].trim()).floatValue();
-				y = Float.valueOf(LocationArray[1].trim()).floatValue();
+				x = Double.valueOf(LocationArray[0].trim());
+				y = Double.valueOf(LocationArray[1].trim());
 			} catch (Exception e) {
 				return null;
 			}
@@ -331,28 +330,27 @@ public class Algorithms {
 		// Calculate the average
 		sumX /= K_Min;
 		sumY /= K_Min;
-
 		return sumX + " " + sumY;
 
 	}
 
-	private static float calculateEuclideanDistance(ArrayList<String> l1, ArrayList<String> l2) {
+	private static double calculateEuclideanDistance(ArrayList<String> l1, ArrayList<String> l2) {
 
-		float finalResult = 0;
-		float v1;
-		float v2;
-		float temp;
+		double finalResult = 0;
+		double v1;
+		double v2;
+		double temp;
 		String str;
 
 		for (int i = 0; i < l1.size(); ++i) {
 
 			try {
 				str = l1.get(i);
-				v1 = Float.valueOf(str.trim()).floatValue();
+				v1 = Double.valueOf(str.trim()).doubleValue();
 				str = l2.get(i);
-				v2 = Float.valueOf(str.trim()).floatValue();
+				v2 = Double.valueOf(str.trim()).doubleValue();
 			} catch (Exception e) {
-				return Float.NEGATIVE_INFINITY;
+				return Double.NEGATIVE_INFINITY;
 			}
 
 			// do the procedure
@@ -362,6 +360,8 @@ public class Algorithms {
 			// do the procedure
 			finalResult += temp;
 		}
-		return ((float) Math.sqrt(finalResult));
+		double res = (double) Math.sqrt(finalResult);
+		//float res = ((float) Math.sqrt(finalResult));
+		return res;
 	}
 }

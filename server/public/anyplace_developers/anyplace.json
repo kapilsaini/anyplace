@@ -321,6 +321,79 @@
               "description": "Choices : 1.true,2.false,3.no spatial"
             }
           ]
+        },
+        {
+          "method_name": "Add authorized access points",
+          "method_description": "Add authorized access points",
+          "http_method": "POST",
+          "uri": "/mapping/accesspoints_add",
+          "parameters": [
+            {
+              "name": "buid",
+              "required": "Y",
+              "type": "text",
+              "default": "",
+              "description": "Building ID (buid)"
+            },
+            {
+              "name": "floor_number",
+              "required": "Y",
+              "type": "text",
+              "default": "",
+              "description": "Building floor number"
+            },
+            {
+              "name": "aplist",
+              "required": "Y",
+              "type": "text",
+              "default": "",
+              "description": "Access Point List [{ssid}]"
+            }
+          ]
+        },
+        {
+          "method_name": "Get authorized access points [all]",
+          "method_description": "Get authorized access points [all]",
+          "http_method": "GET",
+          "uri": "/mapping/accesspoints_all",
+          "parameters": []
+        },
+        {
+          "method_name": "Get authorized access points by Building and Floor",
+          "method_description": "Get authorized access points by Building and Floor",
+          "http_method": "GET",
+          "uri": "/mapping/accesspoints_by_buid_floor/:buid/:floor_number",
+          "parameters": [
+            {
+              "name": "buid",
+              "required": "Y",
+              "type": "text",
+              "default": "",
+              "description": "Building ID (buid)"
+            },
+            {
+              "name": "floor_number",
+              "required": "Y",
+              "type": "text",
+              "default": "",
+              "description": "Building floor number"
+            }
+          ]
+        },
+        {
+          "method_name": "Get authorized access points by SSID",
+          "method_description": "Get authorized access points by SSID",
+          "http_method": "GET",
+          "uri": "/mapping/accesspoints_by_ssid/:ssid",
+          "parameters": [
+            {
+              "name": "ssid",
+              "required": "Y",
+              "type": "text",
+              "default": "",
+              "description": "AP SSID"
+            }
+          ]
         }
       ]
     },
