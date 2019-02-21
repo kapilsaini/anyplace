@@ -2559,6 +2559,44 @@ object AnyplaceMapping extends play.api.mvc.Controller {
       inner(request)
   }
 
+  def serveFloorPlanBase64AsJson(buid: String, floor_number: String) = Action {
+    implicit request =>
+
+      def inner(request: Request[AnyContent]): Result = {
+        val anyReq = new OAuth2Request(request)
+        if (!anyReq.assertJsonBody()) return AnyResponseHelper.bad_request(AnyResponseHelper.CANNOT_PARSE_BODY_AS_JSON)
+        var json = anyReq.getJsonBody
+        LPLogger.info("AnyplaceMapping::serveFloorPlanBase64(): " + json.toString)
+        val filePath = AnyPlaceTilerHelper.getFloorPlanFor(buid, floor_number)
+        LPLogger.info("requested: " + filePath)
+        val file = new File(filePath)
+        try {
+          if (!file.exists() || !file.canRead()) return AnyResponseHelper.bad_request("Requested floor plan does not exist or cannot be read! (" +
+            floor_number +
+            ")")
+          try {
+            val s = encodeFileToBase64Binary(filePath)
+            try {
+              //gzippedOk(s)
+              val res = JsonObject.empty()
+              res.put("floormap", s)
+              return AnyResponseHelper.ok(res, "Successfully retrieved floor map!")
+            } catch {
+              case ioe: IOException => Ok(s)
+            }
+          } catch {
+            case e: IOException => return AnyResponseHelper.bad_request("Requested floor plan cannot be encoded in base64 properly! (" +
+              floor_number +
+              ")")
+          }
+        } catch {
+          case e: Exception => return AnyResponseHelper.internal_server_error("Unknown server error during floor plan delivery!")
+        }
+      }
+
+      inner(request)
+  }
+
 
   /**
     * Returns the floorplan in base64 form. Used by the Anyplace websites
@@ -2618,6 +2656,8 @@ object AnyplaceMapping extends play.api.mvc.Controller {
 
       inner(request)
   }
+
+
 
   private def encodeFileToBase64Binary(fileName: String) = {
     val file = new File(fileName)
@@ -3099,26 +3139,42 @@ def addAuthorizedAP() = Action {
     
       val buid = (json\"buid").as[String]
       val floor = (json\"floor_number").as[String]
+      
+      val existingAccessPoints = ProxyDataSource.getIDatasource.getAutAccessPointsByBuildingFloor(buid, floor).map{
+       jsObj => jsObj.getString("ssid")}.toList
 
-      Json.parse((json\"aplist").as[String]).validate[List[JsValue]] match {
-        case s: JsSuccess[List[JsValue]] => {
-          s.get map { apoint =>
-            println("access point from list -> " + apoint)
+      var addedNewAPFlag: Boolean = false
+
+      Json.parse((json\"aplist").as[String]).validate[List[String]] match {
+        case s: JsSuccess[List[String]] => {
+          s.get map { ssid =>
             try {
-              val ssid = (apoint\"ssid").as[String]
-              val accessPoint = new AccessPoint(ssid, buid, floor)
-              ProxyDataSource.getIDatasource.addJsonDocument(accessPoint.getId, 0, accessPoint.toValidCouchJson().toString)
+              if (existingAccessPoints.contains(ssid)) {
+                LPLogger.info("Skipping adding "+ ssid +" as this AP already exists")
+              } else {
+                val accessPoint = new AccessPoint(ssid, buid, floor)
+                ProxyDataSource.getIDatasource.addJsonDocument(accessPoint.getId, 0, accessPoint.toValidCouchJson().toString)
+                
+                if (!addedNewAPFlag) {
+                  addedNewAPFlag = true
+                }
+              }
             } catch {
               case e: DatasourceException => return AnyResponseHelper.internal_server_error("Server Internal Error [" + e.getMessage + "]")
             }
           }
 
           //Refresh Radiomap files
-
+          if (Play.application().configuration().getBoolean("filterAccessPoints") && addedNewAPFlag) {
+            LPLogger.info("Updating Frozen radio maps")
+            AnyplacePosition.updateFrozenRadioMap(buid, floor)
+          } else {
+            LPLogger.info("Skipping Updating Frozen radio maps as either filterAccessPoints is disabled or no new AP added")
+          }
 
         }
         case e: JsError => 
-          println("Errors: " + JsError.toJson(e).toString())
+          LPLogger.error("Errors: " + JsError.toJson(e).toString())
       }
 
 

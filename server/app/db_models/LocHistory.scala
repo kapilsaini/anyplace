@@ -80,14 +80,10 @@ class LocHistory(hm: HashMap[String, String]) extends AbstractModel {
   def getId(): String = {
     var lhistid: String = fields.get("lhistid")
     if (lhistid == null || lhistid.isEmpty || lhistid == "") {
-      println("Generating new")
       val finalId = LPUtils.getRandomUUID + "_" + System.currentTimeMillis()
       fields.put("lhistid", "lochist_" + finalId)
-      println("finalId ->", finalId)
       lhistid = fields.get("lhistid")
-      //this.json.put("lhistid", lhistid)
     }
-    println("Created loc history ", lhistid)
     lhistid
   }
 

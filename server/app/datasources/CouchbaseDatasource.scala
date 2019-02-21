@@ -2194,7 +2194,6 @@ class CouchbaseDatasource private(hostname: String,
 
     println("totalRows -> " + res.totalRows)
     for (row <- res.allRows()) {
-      println("Processing row")
       try {
         json = row.document().content()
         result.add(json)
@@ -2234,7 +2233,6 @@ class CouchbaseDatasource private(hostname: String,
         try {
           rssEntry = row.document().content()
           if (accessPointsList.contains(rssEntry.getString("MAC"))){
-            println("rssEntry ->" + rssEntry.getString("MAC"))
             writer.println(RadioMapRaw.toRawRadioMapRecord(rssEntry))
           }
         } catch {

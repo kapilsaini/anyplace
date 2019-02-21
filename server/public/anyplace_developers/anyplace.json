@@ -402,6 +402,35 @@
       "description": "Download the blueprints of a building floor",
       "methods": [
         {
+          "method_name": "Download Base64 as Json",
+          "method_description": "Downloads the floor plan in a base64 png format (w/o prefix)",
+          "http_method": "POST",
+          "uri": "/floorplans64asJson/:buid/:floor_number ",
+          "parameters": [
+            {
+              "name": "access_token",
+              "required": "Y",
+              "type": "text",
+              "default": "api_tester",
+              "description": "OAuth2 Access Token"
+            },
+            {
+              "name": "buid",
+              "required": "Y",
+              "type": "text",
+              "default": "",
+              "description": "Building ID (buid)"
+            },
+            {
+              "name": "floor_number",
+              "required": "Y",
+              "type": "text",
+              "default": "",
+              "description": "Building floor number"
+            }
+          ]
+        },
+        {
           "method_name": "Download Base64",
           "method_description": "Downloads the floor plan in a base64 png format (w/o prefix)",
           "http_method": "POST",

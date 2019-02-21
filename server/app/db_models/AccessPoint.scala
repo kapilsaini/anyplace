@@ -23,7 +23,6 @@ class AccessPoint(hm: HashMap[String, String]) extends AbstractModel {
         fields.put("buid", "")
         fields.put("floor", "")
         fields.put("apid", "")
-        fields.put("id", "")
     }
 
     def this(ssid: String , buid: String, floor: String) {
@@ -31,13 +30,19 @@ class AccessPoint(hm: HashMap[String, String]) extends AbstractModel {
         fields.put("ssid", ssid)
         fields.put("buid", buid)
         fields.put("floor", floor)
-        fields.put("apid", ssid)
         this.json = json
     }
 
     def getId(): String = {
-      return fields.get("apid")
+        var apid: String = fields.get("apid")
+        if (apid == null || apid.isEmpty || apid == "") {
+          val finalId = LPUtils.getRandomUUID + "_" + System.currentTimeMillis()
+          fields.put("apid", "apid_" + finalId)
+          apid = fields.get("apid")
+        }
+        apid
     }
+
 
     def toValidCouchJson(): JsonObject = {
         JsonObject.from(this.getFields())
