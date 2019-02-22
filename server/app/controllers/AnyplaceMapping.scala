@@ -448,7 +448,7 @@ object AnyplaceMapping extends play.api.mvc.Controller {
           if (radioPoints == null) return AnyResponseHelper.bad_request("Fingerprints does not exist or could not be retrieved!")
           val res = JsonObject.empty()
           res.put("radioPoints", radioPoints)
-
+                   
           try {
             gzippedJSONOk(res.toString)
           } catch {
@@ -841,7 +841,7 @@ object AnyplaceMapping extends play.api.mvc.Controller {
           return AnyResponseHelper.bad_request(AnyResponseHelper.CANNOT_PARSE_BODY_AS_JSON)
         var json = anyReq.getJsonBody
         LPLogger.info("AnyplaceMapping::findPosition(): " + json.toString)
-        val requiredMissing = JsonUtils.requirePropertiesInJson(json, "buid", "floor","APs","algorithm_choice")
+        val requiredMissing = JsonUtils.requirePropertiesInJson(json,"APs")
         if (!requiredMissing.isEmpty)
           return AnyResponseHelper.requiredFieldsMissing(requiredMissing)
 
@@ -880,36 +880,57 @@ object AnyplaceMapping extends play.api.mvc.Controller {
 
         println("accessPoints", accessPoints)
 
-        val buid = (json \ "buid").as[String]
-        val floor_number = (json \ "floor").as[String]
+        var buid = (json \ "buid").as[String]
+        var floor_number = (json \ "floor").as[String]
         println("floor_number", floor_number)
-        val algorithm_choice = Integer.parseInt((json\"algorithm_choice").as[String])
+
+        val algorithm_choice : Int =  (json\"algorithm_choice").validate[String] match {
+          case s: JsSuccess[String] => {
+            Integer.parseInt(s.get)
+          }
+          case e: JsError =>
+            Play.application().configuration().getInt("defaultPositionAlgorithm")
+        }
         println("algorithm_choice", algorithm_choice)
+
+        val latestScanList: util.ArrayList[location.LogRecord] = new util.ArrayList[location.LogRecord]()
+        var i=0
+        for (i <- 0 until accessPoints.size) {
+          val bssid= (accessPoints(i) \ "bssid").as[String].toLowerCase
+          val rss =(accessPoints(i) \ "rss").as[Int]
+          latestScanList.add(new location.LogRecord(bssid,rss))
+        }
+
+        if (buid == null || floor_number == null || buid =="" || floor_number == "") {
+          println("Estimating buildig and floor")
+          val buid_floor_number = estimateBuildingFloorFromAP(latestScanList.toList)
+          buid = buid_floor_number._1
+          floor_number = buid_floor_number._2
+          if (buid == null || floor_number == null) {
+            return AnyResponseHelper.bad_request("Can't estimate building and floor number")
+          }
+        }
+
+        println("buid : " + buid)
+        println("floor_number : " + floor_number)
 
         val rmapFile = new File("radiomaps_frozen" + AnyplaceServerAPI.URL_SEPARATOR + buid + AnyplaceServerAPI.URL_SEPARATOR +
           floor_number+AnyplaceServerAPI.URL_SEPARATOR+ "indoor-radiomap-mean.txt")
 
         if(!rmapFile.exists()){
-           //Regenerate the radiomap files if not exist
              AnyplacePosition.updateFrozenRadioMap(buid, floor_number)
         }
 
-        val latestScanList: util.ArrayList[location.LogRecord] = new util.ArrayList[location.LogRecord]()
-        var i=0
-        for (i <- 0 until accessPoints.size) {
-          val bssid= (accessPoints(i) \ "bssid").as[String]
-          val rss =(accessPoints(i) \ "rss").as[Int]
-          latestScanList.add(new location.LogRecord(bssid,rss))
-
-        }
-
         val radioMap:location.RadioMap = new location.RadioMap(rmapFile)
-        val response = Algorithms.ProcessingAlgorithms(latestScanList, radioMap, algorithm_choice)
+        var response = Algorithms.ProcessingAlgorithms(latestScanList, radioMap, algorithm_choice)
 
 
 //val response = "12.989 7.980"        
         
         println("response ->" + response)
+        if (response == null) {
+          response = "0 0"
+        }
         val lat_long = response.split(" ")
         /*
          * Add location history to DB 
@@ -3184,6 +3205,76 @@ def addAuthorizedAP() = Action {
     inner(request)
   }
 
+  def removeAuthorizedAP() = Action {
+    implicit request =>
+    def inner(request: Request[AnyContent]): Result = {
+      println("\n\n\n\n#################################")
+      val anyReq = new OAuth2Request(request)
+      if (!anyReq.assertJsonBody()) return AnyResponseHelper.bad_request(AnyResponseHelper.CANNOT_PARSE_BODY_AS_JSON)
+      var json = anyReq.getJsonBody
+      LPLogger.info("AnyplaceAccounts::removeAuthorizedAP():: ")
+      val notFound = JsonUtils.requirePropertiesInJson(json,"aplist", "buid", "floor_number")
+      if (!notFound.isEmpty) return AnyResponseHelper.requiredFieldsMissing(notFound)
+    
+      val buid = (json\"buid").as[String]
+      val floor = (json\"floor_number").as[String]
+      
+      val authAPs: util.HashMap[String, String] = new util.HashMap()
+      ProxyDataSource.getIDatasource.getAutAccessPointsByBuildingFloor(buid, floor).map { jsObj =>
+        val ssid = jsObj.getString("ssid")
+        val apid = jsObj.getString("apid")
+        if (ssid != "" && apid != "") {
+          authAPs.put(ssid, apid)
+        }
+      }
+      println("authAPMap ->", authAPs)
+
+      var accessPointsToBeDeleted = new util.ArrayList[String]()
+      
+      Json.parse((json\"aplist").as[String]).validate[List[String]] match {
+        case s: JsSuccess[List[String]] => {
+          s.get map { ssid =>
+            try {
+              val id = authAPs.get(ssid)
+              if (id != null && id != "") {
+                LPLogger.info("Marking "+ id +" for deletion")
+                accessPointsToBeDeleted.add(id)
+              } 
+            } catch {
+              case e: Exception => LPLogger.error("Server Error while deleting AP: [" + ssid + "] [" + e.getMessage + "]")
+            }
+          }
+
+          var apFailedToDelete : java.util.List[String] = null
+          try {
+                      
+            apFailedToDelete = ProxyDataSource.getIDatasource.deleteAuthAccessPoints(accessPointsToBeDeleted.toList)
+            
+            LPLogger.error("Authorized access points failed for deletion " + apFailedToDelete)
+          } catch {
+            case e: DatasourceException => return AnyResponseHelper.internal_server_error("Server Internal Error [" + e.getMessage + "]")
+          }
+
+          //Refresh Radiomap files
+          if (Play.application().configuration().getBoolean("filterAccessPoints")) {
+            LPLogger.info("Updating Frozen radio maps")
+            AnyplacePosition.updateFrozenRadioMap(buid, floor)
+          } else {
+            LPLogger.info("Skipping Updating Frozen radio maps as either filterAccessPoints is disabled or no new AP added")
+          }
+
+        }
+        case e: JsError => 
+          LPLogger.error("Errors: " + JsError.toJson(e).toString())
+      }
+
+
+
+      return AnyResponseHelper.ok("AccessPoints removed.")
+    }
+    inner(request)    
+  }
+
 
   def getAllAuthorizedAP() = Action {
     implicit request =>
@@ -3232,5 +3323,58 @@ def addAuthorizedAP() = Action {
       }
     } 
     inner(request)
+  }
+
+  def AllfloorsCustom() = Action {
+  implicit request =>
+    def inner(request: Request[AnyContent]): Result = {
+    try {
+        val buildings = ProxyDataSource.getIDatasource.floorsAllAsJson()
+        val res = JsonObject.empty()
+        res.put("floors", buildings)
+        try {
+          gzippedJSONOk(res.toString)
+        } catch {
+          case ioe: IOException => return AnyResponseHelper.ok(res, "Successfully retrieved all floors!")
+        }
+      } catch {
+        case e: DatasourceException => return AnyResponseHelper.internal_server_error("Server Internal Error [" + e.getMessage + "]")
+      }
+    }
+
+    inner(request)
+  }
+
+
+  def estimateBuildingFloorFromAP(accessPoints: List[location.LogRecord]): (String, String)  = {
+
+    LPLogger.info("AnyplaceMapping::estimateBuildFloorFromAP")
+    var buildingFloor : (String, String) = (null, null)
+
+    //Get AccessPoint with strongest rss
+    println("Unsorted list ")
+    for (ap <- accessPoints){
+      println(ap.getBssid + "  " + ap.getRss)
+    }
+    val sortedList = accessPoints.sortWith(_.getRss > _.getRss)
+    println("Sorted list ")
+    for (ap <- sortedList){
+      println(ap.getBssid + "  " + ap.getRss)
+    }
+
+    val mac_id =  sortedList.get(0).getBssid
+
+    println("Mac Id with strongest signal = " + mac_id)
+
+    buildingFloor = ProxyDataSource.getIDatasource.getBuidFloorListForMAC(mac_id)
+
+    if (buildingFloor._1 != null && buildingFloor._2 != null) {
+        LPLogger.info("Found building and floor for Mac ID " + mac_id )
+    } else {
+      LPLogger.error("Not Found building/floor for Mac ID " + mac_id)
+    }
+
+    println("Estimated Building floor = " + buildingFloor._1 + " / " + buildingFloor._2)
+    return buildingFloor
   }
 }

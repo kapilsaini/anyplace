@@ -180,4 +180,11 @@ trait IDatasource {
 
   def dumpAuthorizedRssLogEntriesByBuildingFloor(outFile: FileOutputStream, buid: String, floor_number: String): Long
 
+  def deleteAuthAccessPoints(accessPointsIds: List[String]) : List[String]
+
+  def floorsAllAsJson(): List[JsonObject]
+
+  def getBuidFloorListForMAC(mac_id: String): (String, String)
+
+
   }

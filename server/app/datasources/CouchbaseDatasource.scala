@@ -46,6 +46,7 @@ import com.couchbase.client.java.document.JsonDocument
 import com.couchbase.client.java.document.json.{JsonArray, JsonObject}
 import com.couchbase.client.java.env.DefaultCouchbaseEnvironment
 import com.couchbase.client.java.view.{SpatialViewQuery, ViewQuery}
+import com.couchbase.client.java.view.Stale
 import com.couchbase.client.java.{Bucket, CouchbaseCluster, PersistTo}
 import db_models.{Connection, Poi, RadioMapRaw}
 import floor_module.IAlgo
@@ -2186,21 +2187,24 @@ class CouchbaseDatasource private(hostname: String,
 
   override def getAutAccessPointsByBuildingFloor(buid: String, floor: String): List[JsonObject] = {
     val couchbaseClient = getConnection
-    val viewQuery = ViewQuery.from("auth_ap", "auth_ap_by_buid_floor").key(JsonArray.from(buid, floor))
+    val viewQuery = ViewQuery.from("auth_ap", "auth_ap_by_buid_floor").key(JsonArray.from(buid, floor)).stale(Stale.FALSE)
 
     val res = couchbaseClient.query(viewQuery)
     val result = new ArrayList[JsonObject]()
     var json: JsonObject = null
 
-    println("totalRows -> " + res.totalRows)
+    println("totalRows -> " + res.totalRows())
     for (row <- res.allRows()) {
       try {
-        json = row.document().content()
-        result.add(json)
+        if (row.document() != null) {
+          json = row.document().content()
+          result.add(json)
+        }
       } catch {
         case e: IOException =>
       }
     }
+    println("result", result)
     result
   }
    
@@ -2232,7 +2236,7 @@ class CouchbaseDatasource private(hostname: String,
         currentFetched += 1
         try {
           rssEntry = row.document().content()
-          if (accessPointsList.contains(rssEntry.getString("MAC"))){
+          if (accessPointsList.size == 0 || accessPointsList.contains(rssEntry.getString("MAC"))){
             writer.println(RadioMapRaw.toRawRadioMapRecord(rssEntry))
           }
         } catch {
@@ -2245,5 +2249,72 @@ class CouchbaseDatasource private(hostname: String,
     writer.flush()
     writer.close()
     totalFetched
+  }
+
+
+  override def deleteAuthAccessPoints(accessPointsIds: List[String]) : List[String] = {
+   println("CouchbaseDatasouce::deleteAuthAccessPoints")
+   println("accessPointIds", accessPointsIds)
+   val all_items_failed = new ArrayList[String]()
+   val couchbaseClient = getConnection
+   for (id <- accessPointsIds) {
+      val db_res = couchbaseClient.remove(id, PersistTo.ONE)
+      try {
+        if (db_res.id.ne(id)) {
+          all_items_failed.add(id)
+        } else {
+        }
+      } catch {
+        case e: Exception => all_items_failed.add(id)
+      }
+    }
+    all_items_failed
+  }
+
+  override def floorsAllAsJson(): List[JsonObject] = {
+    val floors = new ArrayList[JsonObject]()
+    val couchbaseClient = getConnection
+    val viewQuery = ViewQuery.from("nav", "floor_by_buid").includeDocs(true)
+
+    val res = couchbaseClient.query(viewQuery)
+    println("couchbase results: " + res.totalRows())
+    if (!res.success()) {
+      throw new DatasourceException("Error retrieving floors from database!")
+    }
+    var json: JsonObject = null
+
+    for (row <- res.allRows()) {
+      try {
+        json = row.document().content()
+        json.removeKey("owner_id")
+        floors.add(json)
+      } catch {
+        case e: IOException =>
+      }
+    }
+    floors
+  }
+   
+  override def getBuidFloorListForMAC(mac_id: String): (String, String) = {
+    val couchbaseClient = getConnection
+    var rssEntry: JsonObject = null
+    var buidFloor : (String, String) = (null, null)
+    val viewQuery = ViewQuery.from("radio", "raw_radio_MAC").key(mac_id).includeDocs(true).descending(true).limit(1)
+    
+    val res = couchbaseClient.query(viewQuery)
+    
+    if (!(res.totalRows() > 0)) return buidFloor
+
+    for (row <- res.allRows()) {
+      try {
+        rssEntry = row.document().content()
+        val buid : String = rssEntry.get("buid").toString
+        val floor: String = rssEntry.get("floor").toString
+        buidFloor = (buid, floor)
+      } catch {
+        case e: IOException => //continue
+      }
+    }
+    buidFloor
   }
 }

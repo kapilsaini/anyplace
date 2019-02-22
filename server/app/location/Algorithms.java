@@ -34,6 +34,10 @@ public class Algorithms {
 		int i, j;
 
 		ArrayList<String> MacAdressList = RM.getMacAdressList();
+
+		System.out.println("getMacAdressList" + MacAdressList);
+		System.out.println("latestScanList" + latestScanList);
+
 		ArrayList<String> Observed_RSS_Values = new ArrayList<String>();
 		LogRecord temp_LR;
 		int notFoundCounter = 0;
@@ -48,7 +52,7 @@ public class Algorithms {
 				temp_LR = latestScanList.get(j);
 
 				// MAC Address Matched
-				if (MacAdressList.get(i).compareTo(temp_LR.getBssid()) == 0) {
+				if (MacAdressList.get(i).compareToIgnoreCase(temp_LR.getBssid()) == 0) {
 					Observed_RSS_Values.add(String.valueOf(temp_LR.getRss()));
 					break;
 				}
@@ -59,13 +63,14 @@ public class Algorithms {
 				++notFoundCounter;
 			}
 		}
+		System.out.println("Algo notFoundCounter : " + notFoundCounter);
 
 		if (notFoundCounter == MacAdressList.size())
 			return null;
 
 		// Read parameter of algorithm
 		String parameter = readParameter(RM, algorithm_choice);
-
+		System.out.println("Algo parameter : " + parameter);
 		if (parameter == null)
 			return null;
 

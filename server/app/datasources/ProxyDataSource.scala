@@ -411,4 +411,19 @@ class ProxyDataSource private() extends IDatasource {
     _checkActiveDatasource()
     mActiveDatabase.dumpAuthorizedRssLogEntriesByBuildingFloor(outFile, buid, floor_number)
   }
+
+  override def deleteAuthAccessPoints(accessPointsIds: List[String]) : List[String] = {
+    _checkActiveDatasource()
+    mActiveDatabase.deleteAuthAccessPoints(accessPointsIds)
+  }
+
+  override def floorsAllAsJson(): List[JsonObject] = {
+    _checkActiveDatasource()
+    mActiveDatabase.floorsAllAsJson()
+  }
+
+  override def getBuidFloorListForMAC(mac_id: String): (String, String) = {
+    _checkActiveDatasource()
+    mActiveDatabase.getBuidFloorListForMAC(mac_id)
+  }
 }

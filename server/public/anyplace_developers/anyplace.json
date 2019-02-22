@@ -198,6 +198,13 @@
           ]
         },
         {
+          "method_name": "All floors",
+          "method_description": "Get all floors",
+          "http_method": "GET",
+          "uri": "/mapping/all_floors ",
+          "parameters": []
+        },
+        {
           "method_name": "POIs by building",
           "method_description": "Get all POIs inside a building",
           "http_method": "POST",
@@ -327,6 +334,35 @@
           "method_description": "Add authorized access points",
           "http_method": "POST",
           "uri": "/mapping/accesspoints_add",
+          "parameters": [
+            {
+              "name": "buid",
+              "required": "Y",
+              "type": "text",
+              "default": "",
+              "description": "Building ID (buid)"
+            },
+            {
+              "name": "floor_number",
+              "required": "Y",
+              "type": "text",
+              "default": "",
+              "description": "Building floor number"
+            },
+            {
+              "name": "aplist",
+              "required": "Y",
+              "type": "text",
+              "default": "",
+              "description": "Access Point List [{ssid}]"
+            }
+          ]
+        },
+        {
+          "method_name": "Remove authorized access points",
+          "method_description": "Remove authorized access points",
+          "http_method": "POST",
+          "uri": "/mapping/accesspoints_remove",
           "parameters": [
             {
               "name": "buid",
@@ -1267,14 +1303,14 @@
             },
             {
               "name": "buid",
-              "required": "Y",
+              "required": "N",
               "type": "text",
               "default": "",
               "description": "Building ID (buid)"
             },
             {
               "name": "floor",
-              "required": "Y",
+              "required": "N",
               "type": "text",
               "default": "",
               "description": "Floor number (non-whitespace)"
@@ -1287,7 +1323,7 @@
             },
             {
               "name": "algorithm_choice",
-              "required": "Y",
+              "required": "N",
               "type": "integer",
               "description": "choices: KNN_WKNN_Algorithm (1 for non weighted, 2 for weighted), MAP_MMSE_Algorithm (3 for non weighted, 4 for weighted) "
             }
