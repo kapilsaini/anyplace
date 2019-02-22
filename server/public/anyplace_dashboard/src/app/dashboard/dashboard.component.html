@@ -1,0 +1,33 @@
+<div id="container" class="container-fluid">
+
+  <div class="row bg-gray header">
+    <div class="col-md-1 col-sm-1 col-xs-1" style="height: 100%;">
+
+    </div>
+
+    <div class="col-md-5 col-sm-5 col-xs-5">
+      <div class="item-row">
+        <select class="form-control" required (change)="categorySelectionChange($event)">
+          <option disabled selected>Select a Category</option>
+          <option *ngFor="let cat of categories" [value]="cat.name">{{cat.name}}</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="col-md-5 col-sm-5 col-xs-5">
+      <div class="item-row">
+        <select class="form-control" *ngIf="blnCategorySelected" (ngModelChange)="objectSelectionChange($event)" [(ngModel)]="selectedItem" required>
+          <option disabled [selected]="selectedItem == ''" value="">Select an item</option>
+          <option *ngFor="let item of selectedCatList" [value]="item">{{item}}</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div id="map_container" class="row">
+    <div id="map" leaflet [leafletOptions]="options" [(leafletZoom)]="defaultZoom" [(leafletCenter)]="mapCenter" [leafletLayers]="markerLayers">
+      <div *ngIf="showFloorLayer" [leafletLayer]="floorLayer"></div>
+    </div>
+  </div>
+
+</div>
