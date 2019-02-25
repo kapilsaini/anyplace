@@ -2101,15 +2101,8 @@ class CouchbaseDatasource private(hostname: String,
         case e: IOException =>
       }
     }
-    println("Pre sorted", result)
-    
-    //val comparator = new Comparator<JsonObject>()
-
-    //sortedResult = Collections.sort( result, new Comparator<JsonObject>() {
-
-    println("Sorted", sortedResult)
     println("returning rows")
-    result
+    result.sortWith(_.getString("timestamp").toLong > _.getString("timestamp").toLong)
   }
 
   override def getLocHistoryObjCat(): List[JsonObject] = {

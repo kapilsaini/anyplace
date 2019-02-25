@@ -1022,7 +1022,6 @@ object AnyplacePosition extends play.api.mvc.Controller {
         LPLogger.info("AnyplaceMapping::getLocHistoryByObjId(): " + objID.toString)
         try {
           val lHistory = ProxyDataSource.getIDatasource.getLocationHistoryByObjId(objID)
-          println("lHistory ->" + lHistory.toString)
           //println("Sorting")
           // val sortedList = lHistory.sort(o => o.)
           // val srtres = sort(lHistory.toString)
@@ -1044,7 +1043,6 @@ object AnyplacePosition extends play.api.mvc.Controller {
         LPLogger.info("AnyplaceMapping::getLocHistoryObjCat")
         try {
           val objcatList = ProxyDataSource.getIDatasource.getLocHistoryObjCat()
-          println("obj category ->" + objcatList.toString)
           val res = JsonObject.empty()
           res.put("categories", objcatList)
           return AnyResponseHelper.ok(res.toString)
@@ -1055,29 +1053,4 @@ object AnyplacePosition extends play.api.mvc.Controller {
 
     inner(request)
   }
-/*
-  def sort(json: String): String = {
-    val root: JsValue = Json.parse(json)
-    println("root ->", root)
-    val newRoot = sortElements(root)
-    println("newRoot ->", newRoot.toString)
-    newRoot.toString
-  }
-
-  def sortElements(root: JsValue): JsValue = root match {
-    case obj: JsObject => {
-      println("sortElements obj", obj)
-      JsObject(obj.fields.sortBy(e => {
-        println("e =>", e)
-        e._2.isInstanceOf[JsObject]).map(t => (t._1, sortElements(t._2))))
-    }
-    case array: JsArray => {
-      println("sortElements array", array)
-      JsArray(array.value.map(e => sortElements(e)))
-    }
-    case other => {
-      println("sortElements others", other)
-      other
-    }
-  }*/
 }

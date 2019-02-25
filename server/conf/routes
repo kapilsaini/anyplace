@@ -147,11 +147,6 @@ GET         /viewer/*file                                                       
 GET         /viewer/                                                                   controllers.AnyplaceWebApps.serveViewer(file="index.html")
 GET         /viewer                                                                    controllers.AnyplaceWebApps.AddTrailingSlash()
 
-### Dashboard WEBSITE ###
-GET         /dashboard/*file                                                           controllers.Assets.at(path="/public/anyplace_dashboard", file)
-GET         /dashboard/                                                                controllers.AnyplaceWebApps.serveDashboard(file="index.html")
-GET         /dashboard                                                                 controllers.AnyplaceWebApps.AddTrailingSlash()
-
 
 # Map static resources
 GET         /floortiles/zip/*file                                                      controllers.ExternalAssets.at(path="/floor_plans", file)

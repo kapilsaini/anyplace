@@ -51,7 +51,7 @@ object AnyplaceWebApps extends play.api.mvc.Controller {
   }
 
   def serveDashboard(file: String) = Action {
-    val archiDir = "public/anyplace_dashboard/build"
+    val archiDir = "public/anyplace_dashboard"
     serveFile(archiDir, file) 
   }
 
@@ -146,6 +146,8 @@ object AnyplaceWebApps extends play.api.mvc.Controller {
       header = ("Content-Disposition", "inline")
     }
     val reqFile = appDir + "/" + file_str
+
+    println("********* REQUESTED FILE: "+ reqFile)
     val file = Play.application().resourceAsStream(reqFile)
 
     if (file != null)
