@@ -4,7 +4,7 @@ mappings in Universal ++= directory(baseDirectory.value / "anyplace_tiler")
 
 name := "anyplace_v3"
 
-version := "4.0"
+version := "4"
 
 scalaVersion := "2.11.7"
 
