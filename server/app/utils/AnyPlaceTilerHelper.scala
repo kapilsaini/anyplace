@@ -1,5 +1,5 @@
 package utils
-
+import play.Play
 import play.Logger
 import java.io._
 import java.nio.file.Files
@@ -21,7 +21,10 @@ object AnyPlaceTilerHelper {
 
     val FLOOR_TILES_ZIP_NAME = "tiles_archive.zip"
 
-    def getRootFloorPlansDir(): String = FLOOR_PLANS_ROOT_DIR
+    //def getRootFloorPlansDir(): String = FLOOR_PLANS_ROOT_DIR
+    def getRootFloorPlansDir(): String = {
+        Play.application().configuration().getString("floorPlansRootDir") + File.separatorChar
+    }
 
     def getRootFloorPlansDirFor(buid: String): String = {
         getRootFloorPlansDir + buid + File.separatorChar

@@ -39,8 +39,10 @@ import java.io._
 import java.net.{HttpURLConnection, URL}
 import java.text.{NumberFormat, ParseException}
 import java.util
+import java.util.{ArrayList, HashMap, LinkedList}
 import java.util.Locale
 import java.util.zip.GZIPOutputStream
+
 
 import acces.{AccesRBF, GeoUtils}
 import breeze.linalg.{DenseMatrix, DenseVector}
@@ -68,6 +70,8 @@ import scala.collection.mutable.ListBuffer
  import play.api.libs.json._ 
 import db_models.LocHistory
 import org.joda.time.{DateTime,DateTimeZone}
+import scala.util.control.Breaks._
+import scala.util.Try
 
 object AnyplaceMapping extends play.api.mvc.Controller {
 
@@ -848,7 +852,6 @@ object AnyplaceMapping extends play.api.mvc.Controller {
         
         //Customizations
         val deviceId = (json\"dvid").as[String]
-        println("deviceId", deviceId)
         val objectId = (json\"obid").validate[String] match {
           case s: JsSuccess[String] =>
             if (s.get.isEmpty || s.get.trim.isEmpty)
@@ -857,7 +860,6 @@ object AnyplaceMapping extends play.api.mvc.Controller {
               Some(s.get)
           case e: JsError => None
         }
-        println("objectId", objectId)
         val objectCat = (json\"objcat").validate[String] match {
           case s: JsSuccess[String] =>
             if (s.get.isEmpty || s.get.trim.isEmpty)
@@ -866,32 +868,28 @@ object AnyplaceMapping extends play.api.mvc.Controller {
               Some(s.get)
           case e: JsError => None
         }
-        println("objectCat", objectCat)
         val accessOpt = Json.parse((json\"APs").as[String]).validate[List[JsValue]] match {
           case s: JsSuccess[List[JsValue]] => {
             Some(s.get)
           }
           case e: JsError => 
-            println("accessOpt Errors: " + JsError.toJson(e).toString())
+            LPLogger.error("accessOpt Errors: " + JsError.toJson(e).toString())
             None
         }
-        println("accessOpt", accessOpt)
         val accessPoints = accessOpt.get
-
-        println("accessPoints", accessPoints)
-
         var buid = (json \ "buid").as[String]
         var floor_number = (json \ "floor").as[String]
-        println("floor_number", floor_number)
 
         val algorithm_choice : Int =  (json\"algorithm_choice").validate[String] match {
           case s: JsSuccess[String] => {
-            Integer.parseInt(s.get)
+            if (s.get != null && s.get.trim != "")
+              Integer.parseInt(s.get)
+            else
+              Play.application().configuration().getInt("defaultPositionAlgorithm")
           }
           case e: JsError =>
             Play.application().configuration().getInt("defaultPositionAlgorithm")
         }
-        println("algorithm_choice", algorithm_choice)
 
         val latestScanList: util.ArrayList[location.LogRecord] = new util.ArrayList[location.LogRecord]()
         var i=0
@@ -902,7 +900,7 @@ object AnyplaceMapping extends play.api.mvc.Controller {
         }
 
         if (buid == null || floor_number == null || buid =="" || floor_number == "") {
-          println("Estimating buildig and floor")
+          LPLogger.info("Estimating buildig and floor")
           val buid_floor_number = estimateBuildingFloorFromAP(latestScanList.toList)
           buid = buid_floor_number._1
           floor_number = buid_floor_number._2
@@ -911,8 +909,7 @@ object AnyplaceMapping extends play.api.mvc.Controller {
           }
         }
 
-        println("buid : " + buid)
-        println("floor_number : " + floor_number)
+        LPLogger.info("Estimated buid : " + buid + " floor_number : " + floor_number)
 
         val rmapFile = new File("radiomaps_frozen" + AnyplaceServerAPI.URL_SEPARATOR + buid + AnyplaceServerAPI.URL_SEPARATOR +
           floor_number+AnyplaceServerAPI.URL_SEPARATOR+ "indoor-radiomap-mean.txt")
@@ -924,10 +921,6 @@ object AnyplaceMapping extends play.api.mvc.Controller {
         val radioMap:location.RadioMap = new location.RadioMap(rmapFile)
         var response = Algorithms.ProcessingAlgorithms(latestScanList, radioMap, algorithm_choice)
 
-
-//val response = "12.989 7.980"        
-        
-        println("response ->" + response)
         if (response == null) {
           response = "0 0"
         }
@@ -936,8 +929,6 @@ object AnyplaceMapping extends play.api.mvc.Controller {
          * Add location history to DB 
          */
         val currentTimeinMillis = DateTime.now(DateTimeZone.UTC).getMillis()
-        println("deviceId ->", deviceId, " objectId ->", objectId, "ObjectCat ->", objectCat )
-
         if (deviceId == "" && objectId == None) {
           LPLogger.info("Both device Id and Object Id are not available, so skipping adding location history")
         } else {
@@ -945,9 +936,7 @@ object AnyplaceMapping extends play.api.mvc.Controller {
             var locHistory: LocHistory = null
             locHistory = new LocHistory(objectId.getOrElse(""), objectCat.getOrElse(""), deviceId, 
               buid, floor_number, lat_long(0), lat_long(1), currentTimeinMillis.toString,  (json\"APs").as[String])
-            println("generating loc history ID")
             val locID =  locHistory.getId()
-            println("locid ->", locID)
             if (!ProxyDataSource.getIDatasource().addJsonDocument(
                 locID, 0, locHistory.toValidCouchJson().toString())) {
               LPLogger.error("Location history couldn't be added")
@@ -1236,7 +1225,6 @@ object AnyplaceMapping extends play.api.mvc.Controller {
           LPLogger.info("buildingAll(): " + buildings)
           val res = JsonObject.empty()
           res.put("buildings", buildings)
-          println("BuildingAll response" , res.toString)
           try {
             gzippedJSONOk(res.toString)
           }
@@ -1436,7 +1424,6 @@ object AnyplaceMapping extends play.api.mvc.Controller {
           val res = JsonObject.empty()
           res.put("buildings", result)
           res.put("name", cuname)
-          System.out.println(greeklish)
           if (greeklish == null) greeklish = "false"
           res.put("greeklish", greeklish)
           try //                if (request().getHeader("Accept-Encoding") != null && request().getHeader("Accept-Encoding").contains("gzip")) {
@@ -1776,7 +1763,7 @@ object AnyplaceMapping extends play.api.mvc.Controller {
         val filePath = AnyPlaceTilerHelper.getFloorPlanFor(buid, floor_number)
         try {
           val floorfile = new File(filePath)
-          if (floorfile.exists()) HelperMethods.recDeleteDirFile(floorfile)
+          if (floorfile.exists()) HelperMethods.recDeleteDirFile(floorfile.getParentFile())
         } catch {
           case e: IOException => return AnyResponseHelper.internal_server_error("Server Internal Error [" + e.getMessage + "] while deleting floor plan." +
             "\nAll related information is deleted from the database!")
@@ -3073,7 +3060,6 @@ object AnyplaceMapping extends play.api.mvc.Controller {
     val radio = new File(rmapDir.getAbsolutePath + File.separatorChar + "rss-log")
     var fout: FileOutputStream = null
     fout = new FileOutputStream(radio)
-    println(radio.toPath().getFileName)
     var floorFetched: Long = 0l
     floorFetched = ProxyDataSource.getIDatasource.dumpRssLogEntriesByBuildingACCESFloor(fout, buid, floor_number)
     try {
@@ -3173,7 +3159,7 @@ def addAuthorizedAP() = Action {
               if (existingAccessPoints.contains(ssid)) {
                 LPLogger.info("Skipping adding "+ ssid +" as this AP already exists")
               } else {
-                val accessPoint = new AccessPoint(ssid, buid, floor)
+                val accessPoint = new AccessPoint(ssid, "", buid, floor)
                 ProxyDataSource.getIDatasource.addJsonDocument(accessPoint.getId, 0, accessPoint.toValidCouchJson().toString)
                 
                 if (!addedNewAPFlag) {
@@ -3205,86 +3191,43 @@ def addAuthorizedAP() = Action {
     inner(request)
   }
 
-  def removeAuthorizedAP() = Action {
-    implicit request =>
-    def inner(request: Request[AnyContent]): Result = {
-      println("\n\n\n\n#################################")
-      val anyReq = new OAuth2Request(request)
-      if (!anyReq.assertJsonBody()) return AnyResponseHelper.bad_request(AnyResponseHelper.CANNOT_PARSE_BODY_AS_JSON)
-      var json = anyReq.getJsonBody
-      LPLogger.info("AnyplaceAccounts::removeAuthorizedAP():: ")
-      val notFound = JsonUtils.requirePropertiesInJson(json,"aplist", "buid", "floor_number")
-      if (!notFound.isEmpty) return AnyResponseHelper.requiredFieldsMissing(notFound)
-    
-      val buid = (json\"buid").as[String]
-      val floor = (json\"floor_number").as[String]
-      
-      val authAPs: util.HashMap[String, String] = new util.HashMap()
-      ProxyDataSource.getIDatasource.getAutAccessPointsByBuildingFloor(buid, floor).map { jsObj =>
-        val ssid = jsObj.getString("ssid")
-        val apid = jsObj.getString("apid")
-        if (ssid != "" && apid != "") {
-          authAPs.put(ssid, apid)
-        }
-      }
-      println("authAPMap ->", authAPs)
-
-      var accessPointsToBeDeleted = new util.ArrayList[String]()
-      
-      Json.parse((json\"aplist").as[String]).validate[List[String]] match {
-        case s: JsSuccess[List[String]] => {
-          s.get map { ssid =>
-            try {
-              val id = authAPs.get(ssid)
-              if (id != null && id != "") {
-                LPLogger.info("Marking "+ id +" for deletion")
-                accessPointsToBeDeleted.add(id)
-              } 
-            } catch {
-              case e: Exception => LPLogger.error("Server Error while deleting AP: [" + ssid + "] [" + e.getMessage + "]")
-            }
-          }
-
-          var apFailedToDelete : java.util.List[String] = null
-          try {
-                      
-            apFailedToDelete = ProxyDataSource.getIDatasource.deleteAuthAccessPoints(accessPointsToBeDeleted.toList)
-            
-            LPLogger.error("Authorized access points failed for deletion " + apFailedToDelete)
-          } catch {
-            case e: DatasourceException => return AnyResponseHelper.internal_server_error("Server Internal Error [" + e.getMessage + "]")
-          }
-
-          //Refresh Radiomap files
-          if (Play.application().configuration().getBoolean("filterAccessPoints")) {
-            LPLogger.info("Updating Frozen radio maps")
-            AnyplacePosition.updateFrozenRadioMap(buid, floor)
-          } else {
-            LPLogger.info("Skipping Updating Frozen radio maps as either filterAccessPoints is disabled or no new AP added")
-          }
-
-        }
-        case e: JsError => 
-          LPLogger.error("Errors: " + JsError.toJson(e).toString())
-      }
-
-
-
-      return AnyResponseHelper.ok("AccessPoints removed.")
-    }
-    inner(request)    
-  }
-
-
   def getAllAuthorizedAP() = Action {
     implicit request =>
     def inner(request: Request[AnyContent]): Result = {
       LPLogger.info("AnyplaceMapping::getAllAuthorizedAP")
       try {
         val accesspoints = ProxyDataSource.getIDatasource.getAllAutAccessPoints()
+        val buildings = ProxyDataSource.getIDatasource.getAllBuildings
+
+        accesspoints.map{ accesspoint =>
+          accesspoint.put("building_name", buildings.filter(_.getString("buid").equals(accesspoint.getString("buid"))).head.getString("name"))
+          accesspoint.removeKey("buid")
+        }
+
+        val accessPointListMap = new HashMap[String, LinkedList[JsonObject]]()
+        accesspoints.map { accessPoint =>
+            val key = accessPoint.getString("ssid")
+            if(accessPointListMap.containsKey(key)) {
+              val tempList = accessPointListMap.get(key)
+              tempList.add(accessPoint)
+              accessPointListMap.put(key, tempList)
+            } else { 
+              val tempList = new LinkedList[JsonObject]()
+              tempList.add(accessPoint)
+              accessPointListMap.put(key, tempList)
+            }
+          }
+          
+          val resArray = JsonArray.empty()
+          accessPointListMap.map { accessPoint =>
+            val tempObj = JsonObject.empty()
+            tempObj.put(accessPoint._1, accessPoint._2)
+            resArray.add(tempObj)
+          }
+
         val res = JsonObject.empty()
-        res.put("accesspoints", JsonArray.from(accesspoints))
-        return AnyResponseHelper.ok(res.toString)
+        res.put("accesspoints", resArray)
+        return AnyResponseHelper.ok(res, "")
       } catch {
         case e: DatasourceException => return AnyResponseHelper.internal_server_error("Server Internal Error [" + e.getMessage + "]")
       }
@@ -3292,46 +3235,20 @@ def addAuthorizedAP() = Action {
     inner(request)
   }
 
-  def getAuthorizedAPBySSID(ssid: String) = Action {
-    implicit request =>
-    def inner(request: Request[AnyContent]): Result = {
-      LPLogger.info("AnyplaceMapping::getAuthorizedAPBySSID::"+ssid)
-      try {
-        val accesspoints = ProxyDataSource.getIDatasource.getAutAccessPointsBySSID(ssid)
-        val res = JsonObject.empty()
-        res.put("accesspoints", JsonArray.from(accesspoints))
-        return AnyResponseHelper.ok(res.toString)
-      } catch {
-        case e: DatasourceException => return AnyResponseHelper.internal_server_error("Server Internal Error [" + e.getMessage + "]")
-      }
-    } 
-    inner(request)
-  }
-
-
-  def getAuthorizedAPforBuildingFloor(buid: String, floor_number: String) = Action {
-    implicit request =>
-    def inner(request: Request[AnyContent]): Result = {
-      LPLogger.info("AnyplaceMapping::getAuthorizedAPforBuildingFloor::"+buid+"::"+floor_number)
-      try {
-        val accesspoints = ProxyDataSource.getIDatasource.getAutAccessPointsByBuildingFloor(buid, floor_number)
-        val res = JsonObject.empty()
-        res.put("accesspoints", JsonArray.from(accesspoints))
-        return AnyResponseHelper.ok(res.toString)
-      } catch {
-        case e: DatasourceException => return AnyResponseHelper.internal_server_error("Server Internal Error [" + e.getMessage + "]")
-      }
-    } 
-    inner(request)
-  }
-
-  def AllfloorsCustom() = Action {
+ def AllfloorsCustom() = Action {
   implicit request =>
     def inner(request: Request[AnyContent]): Result = {
     try {
-        val buildings = ProxyDataSource.getIDatasource.floorsAllAsJson()
+        val  buildings = ProxyDataSource.getIDatasource.getAllBuildings
+        val floors = ProxyDataSource.getIDatasource.floorsAllAsJson()
+
+        floors.map{ floor =>
+          floor.put("building_name", buildings.filter(_.getString("buid").equals(floor.getString("buid"))).head.getString("name"))
+        }
+
+
         val res = JsonObject.empty()
-        res.put("floors", buildings)
+        res.put("floors", floors)
         try {
           gzippedJSONOk(res.toString)
         } catch {
@@ -3352,29 +3269,253 @@ def addAuthorizedAP() = Action {
     var buildingFloor : (String, String) = (null, null)
 
     //Get AccessPoint with strongest rss
-    println("Unsorted list ")
-    for (ap <- accessPoints){
-      println(ap.getBssid + "  " + ap.getRss)
-    }
     val sortedList = accessPoints.sortWith(_.getRss > _.getRss)
-    println("Sorted list ")
-    for (ap <- sortedList){
-      println(ap.getBssid + "  " + ap.getRss)
+    val mac_ids =  sortedList.get(0).getBssid
+    var resultant_mac_id: Option[String] = None
+
+    
+    //Get List of Auth AccessPoint
+    val authAcessPointsList = ProxyDataSource.getIDatasource.getAllAutAccessPoints()
+    val authAcessPoints = authAcessPointsList.map {_.getString("ssid")}.toList
+    LPLogger.info("whitelisted access points ->"+ authAcessPoints)
+
+    //fetch authoried acess point from sorted list
+    val loop = new Breaks
+    loop.breakable {
+      for (accessPoint <- sortedList){
+        if (authAcessPoints.contains(accessPoint.getBssid)) {
+          resultant_mac_id = Some(accessPoint.getBssid)
+          loop.break
+        }
+      }
     }
 
-    val mac_id =  sortedList.get(0).getBssid
+    if (resultant_mac_id == None){
+      resultant_mac_id = Some(sortedList.get(0).getBssid)
+    }
 
-    println("Mac Id with strongest signal = " + mac_id)
+    LPLogger.info("Mac Id with strongest signal = " + resultant_mac_id.get)
 
-    buildingFloor = ProxyDataSource.getIDatasource.getBuidFloorListForMAC(mac_id)
+
+    // val loop2 = new Break
+    // loop2.breakable {
+    //   for (accessPoint <- sortedList) {
+    //     val mac_id = accessPoint.getBssid
+    //     buildingFloor = ProxyDataSource.getIDatasource.getBuidFloorListForMAC(resultant_mac_id.get)
+    //     if (buildingFloor._1 != null && buildingFloor._2 != null) {
+    //        LPLogger.info("Found building and floor for Mac ID " + resultant_mac_id.get )
+    //     }
+    //   }
+    // }
+
+    buildingFloor = ProxyDataSource.getIDatasource.getBuidFloorListForMAC(resultant_mac_id.get)
 
     if (buildingFloor._1 != null && buildingFloor._2 != null) {
-        LPLogger.info("Found building and floor for Mac ID " + mac_id )
+        LPLogger.info("Found building and floor for Mac ID " + resultant_mac_id.get )
     } else {
-      LPLogger.error("Not Found building/floor for Mac ID " + mac_id)
+      LPLogger.error("Not Found building/floor for Mac ID " + resultant_mac_id.get)
     }
 
-    println("Estimated Building floor = " + buildingFloor._1 + " / " + buildingFloor._2)
+    LPLogger.info("Estimated Building floor = " + buildingFloor._1 + " / " + buildingFloor._2)
     return buildingFloor
+  }
+
+  def toggleWhitelistedAP() = Action {
+    implicit request =>
+    def inner(request: Request[AnyContent]): Result = {
+      val anyReq = new OAuth2Request(request)
+      if (!anyReq.assertJsonBody()) return AnyResponseHelper.bad_request(AnyResponseHelper.CANNOT_PARSE_BODY_AS_JSON)
+      var json = anyReq.getJsonBody
+      LPLogger.info("AnyplaceMapping::toggleWhitelistedAP()")
+      val notFound = JsonUtils.requirePropertiesInJson(json,"aplist")
+      if (!notFound.isEmpty) return AnyResponseHelper.requiredFieldsMissing(notFound)
+      
+      //TODO:  Update to get all access points and not just from building and floor
+      val allAccessPointsJson = ProxyDataSource.getIDatasource.getAllAutAccessPoints      
+      // val apidList = allAccessPointsJson.map{jsObj => jsObj.getString("apid")}.toList
+      // LPLogger.info("apidList ::" + apidList)
+
+      var updatedAPFlag: Boolean = false
+      val updatedBuildFloorList = ListBuffer[(String, String)]()
+
+      Json.parse((json\"aplist").as[String]).validate[List[String]] match {
+        case s: JsSuccess[List[String]] => {
+          s.get map { apid =>
+            LPLogger.info("Looking for AP :"+ apid)
+            val filteredAPs = allAccessPointsJson.filter(_.getString("apid").equals(apid))
+            LPLogger.debug("Filtered access points :"+filteredAPs)
+            try {
+              if (filteredAPs != null && filteredAPs.size > 0) {
+                val filteredAP = filteredAPs.head
+                val isWhiteListed = Try(filteredAP.getString("whitelisted").toBoolean).getOrElse(false)
+                LPLogger.info("Got AP"+ apid + " and whitelisted :" + isWhiteListed)
+                val filterdAccessPoint = new AccessPoint(filteredAP)
+                if (ProxyDataSource.getIDatasource.replaceJsonDocument(
+                  filterdAccessPoint.getId, 0, filterdAccessPoint.updateWhitelisted(!isWhiteListed))) {
+                  LPLogger.info("Toggled AP " +  apid)
+                  val buid = filteredAP.getString("buid")
+                  val floor = filteredAP.getString("floor")
+                  updatedBuildFloorList.append((buid, floor))
+                  if (!updatedAPFlag) {
+                    updatedAPFlag = true
+                  }
+                }
+              } else {
+                LPLogger.info("Didn't find AP with ID :"+ apid)
+              }
+            } catch {
+              case e: DatasourceException => return AnyResponseHelper.internal_server_error("Server Internal Error [" + e.getMessage + "]")
+            }
+          }
+
+          //Refresh Radiomap files
+          if (Play.application().configuration().getBoolean("filterAccessPoints") && updatedAPFlag) {
+            LPLogger.info("Updating Frozen radio maps")
+            LPLogger.info("UPDATED " + updatedBuildFloorList)
+            updatedBuildFloorList.toList.map { buid_floor =>
+              LPLogger.info("Regenerating radio map for " + buid_floor._1 + "__" + buid_floor._2)
+              AnyplacePosition.updateFrozenRadioMap(buid_floor._1, buid_floor._2)
+            }
+          } else {
+            LPLogger.info("Skipping Updating Frozen radio maps as either filterAccessPoints is disabled or no new AP updated")
+          }
+
+        }
+        case e: JsError => 
+          LPLogger.error("Errors: " + JsError.toJson(e).toString())
+      }
+
+      return AnyResponseHelper.ok("Whitelisted accessPoint updated. \n Wait for some time before radio maps regenerate.")
+    }
+    inner(request)
+  }
+
+  def getRadioHeatmapByBuildingFloorSSID() = Action {
+    
+  implicit request =>
+    def inner(request: Request[AnyContent]): Result = {
+
+      val anyReq = new OAuth2Request(request)
+      if (!anyReq.assertJsonBody()) return AnyResponseHelper.bad_request(AnyResponseHelper.CANNOT_PARSE_BODY_AS_JSON)
+      var json = anyReq.getJsonBody
+      LPLogger.info("AnyplaceMapping::getRadioHeatmapByBuildingFloorSSID(): " + json.toString)
+      val requiredMissing = JsonUtils.requirePropertiesInJson(json, "buid", "floor", "ssid")
+      if (!requiredMissing.isEmpty) return AnyResponseHelper.requiredFieldsMissing(requiredMissing)
+      val buid = (json \ "buid").as[String]
+      val floor = (json \ "floor").as[String]
+      val ssid = (json \ "ssid").as[String]
+      try {
+        val accesspoints = ProxyDataSource.getIDatasource.getAutAccessPointsBySSID(ssid)
+        val macIdList: List[String] = accesspoints.toList.map { _.getString("mac")}
+        val radioPoints = ProxyDataSource.getIDatasource.getRadioHeatmapByBuildingFloorUnReduced(buid, floor)
+        if (radioPoints == null) 
+          return AnyResponseHelper.bad_request("Building does not exist or could not be retrieved!")
+        val filteredRadioPoints: List[JsonObject] = radioPoints.toList.filter { rp => macIdList.contains(rp.getString("mac") ) }
+        val radioHeatMap = new HashMap[(String, String), Int]()
+
+        filteredRadioPoints.map { frp =>
+          val key = (frp.getString("x"), frp.getString("y"))
+          if (radioHeatMap.containsKey(key)) {
+            if (radioHeatMap.get(key)  < Integer.parseInt(frp.getString("rss"))) {
+              radioHeatMap.put(key, Integer.parseInt(frp.getString("rss")))
+            }
+          } else {
+            radioHeatMap.put(key, Integer.parseInt(frp.getString("rss")))
+          }
+        }
+
+
+        val heatMap = new ArrayList[JsonObject]()
+
+        radioHeatMap.map { hm =>
+          val item = JsonObject.empty()
+          item.put("x", hm._1._1)
+          item.put("y", hm._1._2)
+          item.put("max_rss", hm._2)
+          heatMap.add(item)
+        }
+
+        val res = JsonObject.empty()
+        res.put("radioPoints", heatMap)
+        return AnyResponseHelper.ok(res, "")
+
+      } catch {
+        case e: DatasourceException => return AnyResponseHelper.internal_server_error("Server Internal Error [" + e.getMessage + "]")
+      }
+    }
+
+    inner(request)
+  }
+
+  def getWhitelistedAPHeatmap() = Action {
+  implicit request =>
+    def inner(request: Request[AnyContent]): Result = {
+
+      val anyReq = new OAuth2Request(request)
+      if (!anyReq.assertJsonBody()) return AnyResponseHelper.bad_request(AnyResponseHelper.CANNOT_PARSE_BODY_AS_JSON)
+      var json = anyReq.getJsonBody
+      LPLogger.info("AnyplaceMapping::getWhitelistedAPHeatmap(): " + json.toString)
+      val requiredMissing = JsonUtils.requirePropertiesInJson(json, "buid", "floor")
+      if (!requiredMissing.isEmpty) return AnyResponseHelper.requiredFieldsMissing(requiredMissing)
+      val buid = (json \ "buid").as[String]
+      val floor = (json \ "floor").as[String]
+      val rssThreshold = (json\"rss").validate[String] match {
+          case s: JsSuccess[String] =>
+            if (s.get.isEmpty || s.get.trim.isEmpty)
+              -110
+            else
+              Integer.parseInt(s.get)
+          case e: JsError => -110
+        }
+
+      try {
+        val accesspoints = ProxyDataSource.getIDatasource.getAutAccessPointsByBuildingFloor(buid, floor)
+        val macIdList: List[String] = accesspoints.toList.map { _.getString("mac")}
+        val radioPoints = ProxyDataSource.getIDatasource.getRadioHeatmapByBuildingFloorUnReduced(buid, floor)
+        if (radioPoints == null) 
+          return AnyResponseHelper.bad_request("Building does not exist or could not be retrieved!")
+        val filteredRadioPoints: List[JsonObject] = radioPoints.toList.filter { rp => macIdList.contains(rp.getString("mac") ) }
+        val radioHeatMap = new HashMap[(String, String), ArrayList[String]]()
+
+        filteredRadioPoints.map { frp =>
+          val key = (frp.getString("x"), frp.getString("y"))
+          if (radioHeatMap.containsKey(key)) {
+            if (Integer.parseInt(frp.getString("rss")) >= rssThreshold) {
+              val currentMacList = radioHeatMap.get(key)
+              if (!currentMacList.contains(frp.getString("mac").toLowerCase)) {
+                currentMacList.add(frp.getString("mac").toLowerCase)
+                radioHeatMap.put(key, currentMacList)
+              }
+            }
+          } else {
+            if (Integer.parseInt(frp.getString("rss")) >= rssThreshold) {
+              val macList = new ArrayList[String]()
+              macList.add(frp.getString("mac").toLowerCase)
+              radioHeatMap.put(key, macList)
+            }
+          }
+        }
+
+
+        val heatMap = new ArrayList[JsonObject]()
+
+        radioHeatMap.map { hm =>
+          val item = JsonObject.empty()
+          item.put("x", hm._1._1)
+          item.put("y", hm._1._2)
+          item.put("macList", hm._2.length)
+          heatMap.add(item)
+        }
+
+        val res = JsonObject.empty()
+        res.put("radioPoints", heatMap)
+        return AnyResponseHelper.ok(res, "")
+
+      } catch {
+        case e: DatasourceException => return AnyResponseHelper.internal_server_error("Server Internal Error [" + e.getMessage + "]")
+      }
+    }
+
+    inner(request)
   }
 }

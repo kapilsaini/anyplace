@@ -387,14 +387,25 @@ class ProxyDataSource private() extends IDatasource {
     mActiveDatabase.getLocationHistoryByObjId(objid)
   }
 
+  override def getLocationHistoryByBuidFloor(buid: String, floor: String): List[JsonObject]  = {
+    _checkActiveDatasource()
+    mActiveDatabase.getLocationHistoryByBuidFloor(buid, floor)
+  }
+
   override def getLocHistoryObjCat(): List[JsonObject] = {
     _checkActiveDatasource()
     mActiveDatabase.getLocHistoryObjCat()
   }
 
-   override def getAutAccessPointsBySSID(ssid: String): util.List[JsonObject] = {
+  override def getAutAccessPointsBySSID(ssid: String): util.List[JsonObject] = {
     _checkActiveDatasource()
     mActiveDatabase.getAutAccessPointsBySSID(ssid)
+  }
+
+
+  override def getAutAccessPointsByMAC(mac: String): util.List[JsonObject] = {
+    _checkActiveDatasource()
+    mActiveDatabase.getAutAccessPointsByMAC(mac)
   }
 
   override def getAutAccessPointsByBuildingFloor(buid: String, floor: String): util.List[JsonObject] = {
@@ -425,5 +436,10 @@ class ProxyDataSource private() extends IDatasource {
   override def getBuidFloorListForMAC(mac_id: String): (String, String) = {
     _checkActiveDatasource()
     mActiveDatabase.getBuidFloorListForMAC(mac_id)
+  }
+
+  override def getRadioHeatmapByBuildingFloorUnReduced(buid: String, floor: String): List[JsonObject] = {
+    _checkActiveDatasource()
+    mActiveDatabase.getRadioHeatmapByBuildingFloorUnReduced(buid, floor)
   }
 }

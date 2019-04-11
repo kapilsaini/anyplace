@@ -170,9 +170,13 @@ trait IDatasource {
 
   def getLocationHistoryByObjId(objId: String): List[JsonObject]
 
+  def getLocationHistoryByBuidFloor(buid: String, floor: String): List[JsonObject] 
+
   def getLocHistoryObjCat(): List[JsonObject]
 
   def getAutAccessPointsBySSID(ssid: String): List[JsonObject]
+
+  def getAutAccessPointsByMAC(mac: String): List[JsonObject]
 
   def getAutAccessPointsByBuildingFloor(buid: String, floor: String): List[JsonObject]
 
@@ -186,5 +190,6 @@ trait IDatasource {
 
   def getBuidFloorListForMAC(mac_id: String): (String, String)
 
+  def getRadioHeatmapByBuildingFloorUnReduced(buid: String, floor: String): List[JsonObject]
 
   }

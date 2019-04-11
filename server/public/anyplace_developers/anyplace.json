@@ -8,7 +8,7 @@
       "description": "You can find your API key (access_token) by signing in Anyplace Architect, in the \"More\" section."
     }
   ],
-  "baseurl": "http://geoloc.alstom.hub/anyplace",
+  "baseurl": "http://172.20.2.55:9000/anyplace",
   "endpoints": [
     {
       "name": "Navigation",
@@ -127,9 +127,9 @@
           "http_method": "POST",
           "uri": "/mapping/building/all",
           "parameters": [
+            
           ]
         },
-
         {
           "method_name": "Buildings By Campus Code",
           "method_description": "Get all buildings for a campus",
@@ -151,6 +151,7 @@
           "http_method": "POST",
           "uri": "/mapping/building/all_bucode",
           "parameters": [
+            
           ]
         },
         {
@@ -202,7 +203,9 @@
           "method_description": "Get all floors",
           "http_method": "GET",
           "uri": "/mapping/all_floors ",
-          "parameters": []
+          "parameters": [
+            
+          ]
         },
         {
           "method_name": "POIs by building",
@@ -330,105 +333,27 @@
           ]
         },
         {
-          "method_name": "Add authorized access points",
-          "method_description": "Add authorized access points",
+          "method_name": "Toggle Whitelisted access points",
+          "method_description": "Toggle Whitelisted access points",
           "http_method": "POST",
-          "uri": "/mapping/accesspoints_add",
+          "uri": "/mapping/accesspoints_toggle",
           "parameters": [
-            {
-              "name": "buid",
-              "required": "Y",
-              "type": "text",
-              "default": "",
-              "description": "Building ID (buid)"
-            },
-            {
-              "name": "floor_number",
-              "required": "Y",
-              "type": "text",
-              "default": "",
-              "description": "Building floor number"
-            },
             {
               "name": "aplist",
               "required": "Y",
               "type": "text",
               "default": "",
-              "description": "Access Point List [{ssid}]"
+              "description": "Access Point List [\"apid1\",\"apid2\"...]"
             }
           ]
         },
         {
-          "method_name": "Remove authorized access points",
-          "method_description": "Remove authorized access points",
-          "http_method": "POST",
-          "uri": "/mapping/accesspoints_remove",
-          "parameters": [
-            {
-              "name": "buid",
-              "required": "Y",
-              "type": "text",
-              "default": "",
-              "description": "Building ID (buid)"
-            },
-            {
-              "name": "floor_number",
-              "required": "Y",
-              "type": "text",
-              "default": "",
-              "description": "Building floor number"
-            },
-            {
-              "name": "aplist",
-              "required": "Y",
-              "type": "text",
-              "default": "",
-              "description": "Access Point List [{ssid}]"
-            }
-          ]
-        },
-        {
-          "method_name": "Get authorized access points [all]",
-          "method_description": "Get authorized access points [all]",
+          "method_name": "Get access points [all]",
+          "method_description": "Get access points [all]",
           "http_method": "GET",
           "uri": "/mapping/accesspoints_all",
-          "parameters": []
-        },
-        {
-          "method_name": "Get authorized access points by Building and Floor",
-          "method_description": "Get authorized access points by Building and Floor",
-          "http_method": "GET",
-          "uri": "/mapping/accesspoints_by_buid_floor/:buid/:floor_number",
           "parameters": [
-            {
-              "name": "buid",
-              "required": "Y",
-              "type": "text",
-              "default": "",
-              "description": "Building ID (buid)"
-            },
-            {
-              "name": "floor_number",
-              "required": "Y",
-              "type": "text",
-              "default": "",
-              "description": "Building floor number"
-            }
-          ]
-        },
-        {
-          "method_name": "Get authorized access points by SSID",
-          "method_description": "Get authorized access points by SSID",
-          "http_method": "GET",
-          "uri": "/mapping/accesspoints_by_ssid/:ssid",
-          "parameters": [
-            {
-              "name": "ssid",
-              "required": "Y",
-              "type": "text",
-              "default": "",
-              "description": "AP SSID"
-            }
+            
           ]
         }
       ]
@@ -1334,21 +1259,8 @@
           "method_description": "Get tracking objects with Categories.",
           "http_method": "GET",
           "uri": "/objcategories",
-          "parameters": []
-        },
-        {
-          "method_name": "Get Location History of the object using Object ID",
-          "method_description": "Get Location History of the object using Object ID. ",
-          "http_method": "POST",
-          "uri": "/history",
           "parameters": [
-            {
-              "name": "obid",
-              "required": "Y",
-              "type": "text",
-              "default": "",
-              "description": "Object ID (obid)"
-            }
+            
           ]
         },
         {
@@ -1732,6 +1644,123 @@
             }
           ]
         }
+      ]
+    },
+    {
+      "name": "custom",
+      "description": "",
+      "methods": [
+        {
+          "method_name": "Radio Heat-Map by floor -SSID ",
+          "method_description": "Get all points (latitude, longitude) along with their number of Wi-Fi radio measurements recorded to draw a heat-map on the client side.",
+          "http_method": "POST",
+          "uri": "/mapping/radio/heatmap_building_floor_ssid ",
+          "parameters": [
+            {
+              "name": "buid",
+              "required": "Y",
+              "type": "text",
+              "default": "",
+              "description": "Building ID (buid)"
+            },
+            {
+              "name": "floor",
+              "required": "Y",
+              "type": "text",
+              "default": "",
+              "description": "Floor number (non-whitespace)"
+            },
+            {
+              "name": "ssid",
+              "required": "Y",
+              "type": "text",
+              "default": "",
+              "description": "SSID"
+            }
+          ]
+        },
+        {
+          "method_name": "Radio Heat-Map by floor - Whitelisted ",
+          "method_description": "Get count of Whitelisted radio AP with RSS strength greater than a given value.",
+          "http_method": "POST",
+          "uri": "/mapping/radio/heatmap_building_floor_whitelisted ",
+          "parameters": [
+            {
+              "name": "buid",
+              "required": "Y",
+              "type": "text",
+              "default": "",
+              "description": "Building ID (buid)"
+            },
+            {
+              "name": "floor",
+              "required": "Y",
+              "type": "text",
+              "default": "",
+              "description": "Floor number (non-whitespace)"
+            },
+            {
+              "name": "rss",
+              "required": "N",
+              "type": "integer",
+              "default": "-110",
+              "description": "RSS { default is -110 }"
+            }
+          ]
+        },
+        {
+          "method_name": "Get Location History Summary of the object using Object ID",
+          "method_description": "Get Location History Summary of the object using Object ID. ",
+          "http_method": "POST",
+          "uri": "/history_summary",
+          "parameters": [
+            {
+              "name": "obid",
+              "required": "Y",
+              "type": "text",
+              "default": "",
+              "description": "Object ID (obid)"
+            }
+          ]
+        },
+        {
+          "method_name": "Get Location History of the object using Object ID",
+          "method_description": "Get Location History of the object using Object ID. ",
+          "http_method": "POST",
+          "uri": "/history",
+          "parameters": [
+            {
+              "name": "obid",
+              "required": "Y",
+              "type": "text",
+              "default": "",
+              "description": "Object ID (obid)"
+            }
+          ]
+        },
+        {
+          "method_name": "Get Location History of the object using Building/Floor",
+          "method_description": "Get Location History of the object using Building/Floor",
+          "http_method": "POST",
+          "uri": "/history_by_buid_floor",
+          "parameters": [
+            {
+              "name": "buid",
+              "required": "Y",
+              "type": "text",
+              "default": "",
+              "description": "Building  ID (buid)"
+            },
+            {
+              "name": "floor",
+              "required": "Y",
+              "type": "text",
+              "default": "",
+              "description": "Floor no (floor)"
+            }
+          ]
+        },
+        
       ]
     }
   ]

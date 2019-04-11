@@ -20,16 +20,30 @@ class AccessPoint(hm: HashMap[String, String]) extends AbstractModel {
     def this() {
         this(new util.HashMap[String, String]())
         fields.put("ssid", "")
+        fields.put("mac", "")
         fields.put("buid", "")
         fields.put("floor", "")
         fields.put("apid", "")
+        fields.put("whitelisted", "false")
     }
 
-    def this(ssid: String , buid: String, floor: String) {
+     def this(json: JsonObject) {
+        this()
+        fields.put("ssid", json.getString("ssid"))
+        fields.put("mac", json.getString("mac"))
+        fields.put("buid", json.getString("buid"))
+        fields.put("floor", json.getString("floor"))
+        fields.put("whitelisted", json.getString("whitelisted"))
+        fields.put("apid", json.getString("apid"))
+    }
+
+    def this(ssid: String , mac: String = "", buid: String, floor: String, whitelisted: Boolean = false) {
         this()
         fields.put("ssid", ssid)
+        fields.put("mac", mac)
         fields.put("buid", buid)
         fields.put("floor", floor)
+        fields.put("whitelisted", whitelisted.toString)
         this.json = json
     }
 
@@ -43,6 +57,19 @@ class AccessPoint(hm: HashMap[String, String]) extends AbstractModel {
         apid
     }
 
+    def updateWhitelisted(whitelisted: Boolean): String = {
+        println("Updating whitelisted with val " + whitelisted)
+        val sb = new StringBuilder()
+        var json = toValidCouchJson()
+        try {
+            this.fields.put("whitelisted", whitelisted.toString)
+            json.put("whitelisted", whitelisted.toString)
+        } catch {
+            case e: IOException => e.printStackTrace()
+        }
+        sb.append(json.toString)
+        sb.toString
+    }
 
     def toValidCouchJson(): JsonObject = {
         JsonObject.from(this.getFields())

@@ -176,15 +176,18 @@ GET         /android/apk/:file                                                  
 # CUSTOM API
 POST  		/anyplace/history                                      					   controllers.AnyplacePosition.getLocHistoryByObjId()
 GET         /anyplace/objcategories													   controllers.AnyplacePosition.getLocHistoryObjCat()
-POST        /anyplace/mapping/accesspoints_add                                         controllers.AnyplaceMapping.addAuthorizedAP()
-POST        /anyplace/mapping/accesspoints_remove                                      controllers.AnyplaceMapping.removeAuthorizedAP()
+POST        /anyplace/mapping/accesspoints_toggle                                      controllers.AnyplaceMapping.toggleWhitelistedAP()
 GET         /anyplace/mapping/accesspoints_all                                         controllers.AnyplaceMapping.getAllAuthorizedAP()
-GET         /anyplace/mapping/accesspoints_by_buid_floor/:buid/:floor_number           controllers.AnyplaceMapping.getAuthorizedAPforBuildingFloor(buid: String, floor_number: String)
-GET         /anyplace/mapping/accesspoints_by_ssid/:ssid                               controllers.AnyplaceMapping.getAuthorizedAPBySSID(ssid: String)
 GET         /anyplace/mapping/all_floors                                               controllers.AnyplaceMapping.AllfloorsCustom()
+##############
+POST  		/anyplace/history_by_buid_floor                                      	   controllers.AnyplacePosition.getLocHistoryByBuidFloor()
+POST  		/anyplace/history_summary                              					   controllers.AnyplacePosition.getLocHistorySummaryByObjId()
+POST        /anyplace/mapping/radio/heatmap_building_floor_ssid                        controllers.AnyplaceMapping.getRadioHeatmapByBuildingFloorSSID()
+POST        /anyplace/mapping/radio/heatmap_building_floor_whitelisted                 controllers.AnyplaceMapping.getWhitelistedAPHeatmap()
 
 ############################################################################################
 ## ROOT ##
 GET         /                                                                          controllers.ApplicationAnyplace.index()
 # Redirect all unknown routes to the index page
+GET         /favicon.ico								 							   controllers.Assets.at(path="/public/images", file="favicon.png")
 GET         /*any                                                                      controllers.ApplicationAnyplace.indexAny(any)
