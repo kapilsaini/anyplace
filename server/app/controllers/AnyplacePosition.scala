@@ -108,16 +108,21 @@ object AnyplacePosition extends play.api.mvc.Controller {
         } else {
           return AnyResponseHelper.forbidden("Invalid username or password")
         }
-        val ssid_mac_mapping: HashMap[String, LinkedList[String]] = fetchSSID_MACMapping(radioFile.get.ref.file)
-        LPLogger.debug("ssid_mac_mapping " + ssid_mac_mapping)
+        val (ssid_mac_mapping, mac_attrib_mapping): 
+          (HashMap[String, LinkedList[String]], HashMap[String, List[String]]) =
+            fetchSSID_MACMapping(radioFile.get.ref.file)
+
+
+        LPLogger.info("ssid_mac_mapping " + ssid_mac_mapping)
+        LPLogger.info("mac_attrib_mapping " + mac_attrib_mapping)
 
         val newBuildingsFloors: HashMap[String, LinkedList[String]] = RadioMap.authenticateRSSlogFileAndReturnBuildingsFloors(radioFile.get.ref.file)
 
-        println("newBuildingsFloors" + newBuildingsFloors)
+        LPLogger.info("newBuildingsFloors" + newBuildingsFloors)
         if (ssid_mac_mapping!= null && newBuildingsFloors != null) {
           val buid = newBuildingsFloors.keySet.head
           val floor = newBuildingsFloors.get(buid).head
-          add_ssid_mac_accessPoints(ssid_mac_mapping,buid, floor)
+          add_ssid_mac_accessPoints(ssid_mac_mapping,buid, floor, mac_attrib_mapping)
         }
 
         if (newBuildingsFloors == null) {
@@ -1081,8 +1086,35 @@ object AnyplacePosition extends play.api.mvc.Controller {
         val json = anyReq.getJsonBody
         val objID = (json \ "obid").as[String]
         LPLogger.info("AnyplaceMapping::getLocHistoryByObjId(): " + objID.toString)
+
+        val buid = (json\"buid").validate[String] match {
+          case s: JsSuccess[String] =>
+            if (s.get.isEmpty || s.get.trim.isEmpty)
+              None
+            else
+              Some(s.get)
+          case e: JsError => None
+        }
+
+        val floor = (json\"floor").validate[String] match {
+          case s: JsSuccess[String] =>
+            if (s.get.isEmpty || s.get.trim.isEmpty)
+              None
+            else
+              Some(s.get)
+          case e: JsError => None
+        }
+
+
         try {
-          val lHistory = ProxyDataSource.getIDatasource.getLocationHistoryByObjId(objID)
+
+          var lHistory: List[JsonObject] = null
+
+          if (buid.isEmpty || floor.isEmpty) {
+            lHistory = ProxyDataSource.getIDatasource.getLocationHistoryByObjId(objID)
+          } else {
+            lHistory = ProxyDataSource.getIDatasource.getLocationHistoryByObjIdBuidFloor(objID, buid.get, floor.get)
+          }
           //println("Sorting")
           // val sortedList = lHistory.sort(o => o.)
           // val srtres = sort(lHistory.toString)
@@ -1159,26 +1191,37 @@ object AnyplacePosition extends play.api.mvc.Controller {
     inner(request)
   }
 
-  def add_ssid_mac_accessPoints(ssid_mac: HashMap[String, LinkedList[String]] , buid: String, floor: String) = {
+  def add_ssid_mac_accessPoints(ssid_mac: HashMap[String, LinkedList[String]] , buid: String, floor: String, mac_attrib_mappings: HashMap[String, List[String]]) = {
     LPLogger.info("AnyplacePosition::add_ssid_mac_accessPoints")
     LPLogger.info("buid :" + buid +" :: floor " + floor)
     val ssid_list = ssid_mac.keySet
     ssid_list.map { ssid =>
       val mac_id_list = ssid_mac.get(ssid)
-      mac_id_list.map {mac=>
+      mac_id_list.map {mac =>
         val accesspoints = ProxyDataSource.getIDatasource.getAutAccessPointsByMAC(mac)
         if (accesspoints == null || accesspoints.size < 1) {
-        val accessPoint = new AccessPoint(ssid, mac, buid, floor, false)
-          ProxyDataSource.getIDatasource.addJsonDocument(accessPoint.getId, 0, accessPoint.toValidCouchJson().toString)
+          var accessPoint = new AccessPoint(ssid, mac, buid, floor, false)
+          if (mac_attrib_mappings.containsKey(mac)) {
+            val additional_attibs = mac_attrib_mappings.get(mac)
+            val objectid = additional_attibs(0)
+            val frequency = additional_attibs(1)
+            val channelWidth = getChannelWidthNofromCode(additional_attibs(2).toInt)
+            val capability = additional_attibs(3)
+            LPLogger.info("Additional Attributes:: " + mac + " :: " + objectid + "::" + frequency + "::" + channelWidth+ "::" + capability)         
+            accessPoint.updateAdditionalAttributes(frequency, channelWidth, capability)     
+          }
+         ProxyDataSource.getIDatasource.addJsonDocument(accessPoint.getId, 0, accessPoint.toValidCouchJson().toString)
         }
       }
     }
   }
 
-  def fetchSSID_MACMapping(inFile: File): HashMap[String, LinkedList[String]] = {
+  def fetchSSID_MACMapping(inFile: File): (HashMap[String, LinkedList[String]], HashMap[String, List[String]]) = {
     var line_num = 0
     var reader: BufferedReader = null
     val ssid_mac = new HashMap[String, LinkedList[String]]()
+    val mac_attribs = new HashMap[String, List[String]]
+
     try {
       var line: String = null
       val fr = new FileReader(inFile)
@@ -1190,8 +1233,9 @@ object AnyplacePosition extends play.api.mvc.Controller {
         line_num += 1
         if (!(line.startsWith("#") || line.trim().isEmpty)) {
           line = line.replace(", ", " ")
+          println("##::"+line)
           val temp = line.split(" ")
-          if (temp.length != 9) {
+          if (temp.length < 9) {
             throw new Exception("Line " + line_num + " length is not equal to 8.")
           }
 
@@ -1202,10 +1246,8 @@ object AnyplacePosition extends play.api.mvc.Controller {
           }
           if (!ssid_mac.containsKey(temp(8))) {
             val tempList = new LinkedList[String]()
-            if(!tempList.contains(temp(4))) {
-              tempList.add(temp(4))
-              ssid_mac.put(temp(8), tempList)
-            }
+            tempList.add(temp(4))
+            ssid_mac.put(temp(8), tempList)
           } else {
              val tempList = ssid_mac.get(temp(8))
              if(!tempList.contains(temp(4))) {
@@ -1213,11 +1255,29 @@ object AnyplacePosition extends play.api.mvc.Controller {
               ssid_mac.put(temp(8), tempList)
             }
           }
+
+          //Fetching Additional attributes
+          if (!mac_attribs.containsKey(temp(4))) {
+            val macAttribs = new ArrayList[String](4)
+            //9 :: objectId
+            
+            for (i <- 9 to 12) {
+              println("Processing " + i)
+              if (temp(i) != null)
+                macAttribs.add(temp(i))
+              else 
+                macAttribs.add("NA")
+            }
+            //10: frequency
+            //11: channeWidth
+            //12: capability
+            mac_attribs.put(temp(4), macAttribs)
+          }
         }
       }
       fr.close()
       reader.close()
-      return ssid_mac
+      return (ssid_mac, mac_attribs)
     } catch {
       case nfe: NumberFormatException => {
         System.err.println("Error while authenticating RSS log file " + inFile.getAbsolutePath +
@@ -1234,6 +1294,21 @@ object AnyplacePosition extends play.api.mvc.Controller {
         return null
       }
     }
-    ssid_mac
+    (ssid_mac, mac_attribs)
+  }
+
+
+  private def getChannelWidthNofromCode(channelWidthCode: Int): String = {
+    if (channelWidthCode == 0)
+      return "20MHZ"
+    else if (channelWidthCode == 1)
+      return "40MHZ"
+    else if (channelWidthCode == 2)
+      return "80MHZ" 
+    else if (channelWidthCode == 3)
+      return "160MHZ" 
+    else if (channelWidthCode == 4)
+      return "80MHZ+80MHZ"
+    else return "NA"
   }
 }

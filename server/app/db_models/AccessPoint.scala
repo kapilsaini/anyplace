@@ -25,6 +25,9 @@ class AccessPoint(hm: HashMap[String, String]) extends AbstractModel {
         fields.put("floor", "")
         fields.put("apid", "")
         fields.put("whitelisted", "false")
+        fields.put("frequency", "")
+        fields.put("capabilities", "")
+        fields.put("channelWidth", "")
     }
 
      def this(json: JsonObject) {
@@ -35,6 +38,9 @@ class AccessPoint(hm: HashMap[String, String]) extends AbstractModel {
         fields.put("floor", json.getString("floor"))
         fields.put("whitelisted", json.getString("whitelisted"))
         fields.put("apid", json.getString("apid"))
+        fields.put("frequency", json.getString("frequency"))
+        fields.put("capabilities", json.getString("capabilities"))
+        fields.put("channelWidth", json.getString("channelWidth"))
     }
 
     def this(ssid: String , mac: String = "", buid: String, floor: String, whitelisted: Boolean = false) {
@@ -44,6 +50,9 @@ class AccessPoint(hm: HashMap[String, String]) extends AbstractModel {
         fields.put("buid", buid)
         fields.put("floor", floor)
         fields.put("whitelisted", whitelisted.toString)
+        fields.put("frequency", "0")
+        fields.put("capabilities", "NA")
+        fields.put("channelWidth", "NA")
         this.json = json
     }
 
@@ -70,6 +79,18 @@ class AccessPoint(hm: HashMap[String, String]) extends AbstractModel {
         sb.append(json.toString)
         sb.toString
     }
+
+
+    def updateAdditionalAttributes(frequency: String, channelWidth: String, capabilities: String) = {
+        this.fields.put("frequency", frequency.toString)
+        this.fields.put("capabilities", capabilities)
+        this.fields.put("channelWidth", channelWidth)
+        var json = toValidCouchJson()
+        json.put("frequency", frequency.toString)
+        json.put("capabilities", capabilities)
+        json.put("channelWidth", channelWidth)
+    }
+
 
     def toValidCouchJson(): JsonObject = {
         JsonObject.from(this.getFields())

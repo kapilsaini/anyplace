@@ -177,6 +177,7 @@ GET         /android/apk/:file                                                  
 POST  		/anyplace/history                                      					   controllers.AnyplacePosition.getLocHistoryByObjId()
 GET         /anyplace/objcategories													   controllers.AnyplacePosition.getLocHistoryObjCat()
 POST        /anyplace/mapping/accesspoints_toggle                                      controllers.AnyplaceMapping.toggleWhitelistedAP()
+POST        /anyplace/mapping/purge_accesspoints                                       controllers.AnyplaceMapping.purgeAccessPoints()
 GET         /anyplace/mapping/accesspoints_all                                         controllers.AnyplaceMapping.getAllAuthorizedAP()
 GET         /anyplace/mapping/all_floors                                               controllers.AnyplaceMapping.AllfloorsCustom()
 ##############
@@ -184,6 +185,9 @@ POST  		/anyplace/history_by_buid_floor                                      	  
 POST  		/anyplace/history_summary                              					   controllers.AnyplacePosition.getLocHistorySummaryByObjId()
 POST        /anyplace/mapping/radio/heatmap_building_floor_ssid                        controllers.AnyplaceMapping.getRadioHeatmapByBuildingFloorSSID()
 POST        /anyplace/mapping/radio/heatmap_building_floor_whitelisted                 controllers.AnyplaceMapping.getWhitelistedAPHeatmap()
+POST        /anyplace/feedback/add_location_feeback                                    controllers.AnyplaceFeedback.addLocationFeedback()
+GET         /anyplace/feedback/get_location_feeback                                    controllers.AnyplaceFeedback.getLocationFeedback()
+
 
 ############################################################################################
 ## ROOT ##

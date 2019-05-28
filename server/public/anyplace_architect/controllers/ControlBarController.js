@@ -97,7 +97,6 @@ app.controller('ControlBarController', ['$scope', '$rootScope', 'AnyplaceService
                 $scope.setCookie("username", "true", 365);
                 location.reload();
             }
-            console.log(googleUser); //Keshav
             //location.reload();
             $scope.setAuthenticated(true);
 
@@ -109,7 +108,6 @@ app.controller('ControlBarController', ['$scope', '$rootScope', 'AnyplaceService
 
             $scope.personLookUp(googleUser);
 
-            console.log($scope.gAuth); //Keshav
         }
     };
 

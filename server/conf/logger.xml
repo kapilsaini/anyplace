@@ -1,7 +1,6 @@
 <configuration>
 
-	<property name="LOG_HOME" value="/home/infyagv/Anyplace/DataStore/logs" />
-
+	<property name="LOG_HOME" value="<LOG_LOC>/logs"/>
 
   	<appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
     	<encoder>

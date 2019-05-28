@@ -3202,6 +3202,10 @@ def addAuthorizedAP() = Action {
         accesspoints.map{ accesspoint =>
           accesspoint.put("building_name", buildings.filter(_.getString("buid").equals(accesspoint.getString("buid"))).head.getString("name"))
           accesspoint.removeKey("buid")
+
+          //val strFrequency = accesspoint.getString("frequency")
+          val channelID = convertFrequencyToChannel(accesspoint.getString("frequency").toInt)
+          accesspoint.put("channel_id",channelID)
         }
 
         val accessPointListMap = new HashMap[String, LinkedList[JsonObject]]()
@@ -3318,6 +3322,28 @@ def addAuthorizedAP() = Action {
 
     LPLogger.info("Estimated Building floor = " + buildingFloor._1 + " / " + buildingFloor._2)
     return buildingFloor
+  }
+
+  def purgeAccessPoints() = Action {
+    implicit request =>
+    def inner(request: Request[AnyContent]): Result = {
+      val anyReq = new OAuth2Request(request)
+      LPLogger.info("AnyplaceMapping::purgeAccessPoints()")
+      val allAccessPoints = ProxyDataSource.getIDatasource.getAllAutAccessPoints
+
+      val accessPointList: java.util.List[String] = allAccessPoints.map { _.getString("apid") }
+      val res = JsonObject.empty()
+      val failed_access_points = ProxyDataSource.getIDatasource.deleteAuthAccessPoints(accessPointList)
+      if (failed_access_points.size < 1 ) {
+        res.put("message", "Deleted all access points")
+        res.put("failed_access_points", "")
+      } else {
+        res.put("message", "Failed to delete all access points")
+        res.put("failed_access_points", failed_access_points)
+      }
+      return AnyResponseHelper.ok(res, "")
+    }
+    inner(request)
   }
 
   def toggleWhitelistedAP() = Action {
@@ -3473,24 +3499,35 @@ def addAuthorizedAP() = Action {
         val macIdList: List[String] = accesspoints.toList.map { _.getString("mac")}
         val radioPoints = ProxyDataSource.getIDatasource.getRadioHeatmapByBuildingFloorUnReduced(buid, floor)
         if (radioPoints == null) 
-          return AnyResponseHelper.bad_request("Building does not exist or could not be retrieved!")
+          return AnyResponseHelper.bad_request("Radio maps does not exist or could not be retrieved!")
         val filteredRadioPoints: List[JsonObject] = radioPoints.toList.filter { rp => macIdList.contains(rp.getString("mac") ) }
-        val radioHeatMap = new HashMap[(String, String), ArrayList[String]]()
+        val radioHeatMap = new HashMap[(String, String), ArrayList[(String, Int)]]()
 
         filteredRadioPoints.map { frp =>
+
+          val rssVal = Integer.parseInt(frp.getString("rss"))
           val key = (frp.getString("x"), frp.getString("y"))
           if (radioHeatMap.containsKey(key)) {
             if (Integer.parseInt(frp.getString("rss")) >= rssThreshold) {
-              val currentMacList = radioHeatMap.get(key)
-              if (!currentMacList.contains(frp.getString("mac").toLowerCase)) {
-                currentMacList.add(frp.getString("mac").toLowerCase)
-                radioHeatMap.put(key, currentMacList)
+              val currentMacList: ArrayList[(String, Int)] = radioHeatMap.get(key)
+
+              val tempCurrentMacList = currentMacList.filter( element => element._1 == frp.getString("mac").toLowerCase)
+              if(tempCurrentMacList != null && ! tempCurrentMacList.isEmpty){
+                if (tempCurrentMacList.head._2 < rssVal) {
+                    currentMacList.remove(tempCurrentMacList.head)
+                    currentMacList.add((frp.getString("mac").toLowerCase, rssVal))
+                    radioHeatMap.put(key, currentMacList)
+                }
+              } else {
+                  // List doesn't contain current MAC
+                  currentMacList.add((frp.getString("mac").toLowerCase, rssVal))
+                  radioHeatMap.put(key, currentMacList)
               }
             }
           } else {
             if (Integer.parseInt(frp.getString("rss")) >= rssThreshold) {
-              val macList = new ArrayList[String]()
-              macList.add(frp.getString("mac").toLowerCase)
+              val macList = new ArrayList[(String, Int)]()
+              macList.add((frp.getString("mac").toLowerCase, rssVal))
               radioHeatMap.put(key, macList)
             }
           }
@@ -3503,10 +3540,10 @@ def addAuthorizedAP() = Action {
           val item = JsonObject.empty()
           item.put("x", hm._1._1)
           item.put("y", hm._1._2)
-          item.put("macList", hm._2.length)
+          item.put("rss", JsonArray.from(new util.ArrayList((hm._2.map(el => el._2).toList.sortWith(_ > _)))))
           heatMap.add(item)
         }
-
+        
         val res = JsonObject.empty()
         res.put("radioPoints", heatMap)
         return AnyResponseHelper.ok(res, "")
@@ -3517,5 +3554,13 @@ def addAuthorizedAP() = Action {
     }
 
     inner(request)
+  }
+
+  private def convertFrequencyToChannel(freq: Int): Int = {
+    if (freq == 2484)
+      return 14
+    if (freq < 2484)
+      return (freq - 2407) / 5
+    return freq/5 - 1000;
   }
 }

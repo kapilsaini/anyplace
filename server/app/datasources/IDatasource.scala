@@ -169,6 +169,8 @@ trait IDatasource {
   def deleteNotValidDocuments(): Boolean
 
   def getLocationHistoryByObjId(objId: String): List[JsonObject]
+  
+  def getLocationHistoryByObjIdBuidFloor(obid: String, buid: String, floor: String): List[JsonObject]
 
   def getLocationHistoryByBuidFloor(buid: String, floor: String): List[JsonObject] 
 
@@ -191,5 +193,7 @@ trait IDatasource {
   def getBuidFloorListForMAC(mac_id: String): (String, String)
 
   def getRadioHeatmapByBuildingFloorUnReduced(buid: String, floor: String): List[JsonObject]
+
+  def getLocationFeedback(): List[JsonObject]
 
   }

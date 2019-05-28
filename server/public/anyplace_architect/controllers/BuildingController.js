@@ -156,7 +156,6 @@ app.controller('BuildingController', ['$cookieStore', '$scope', '$compile', 'GMa
     });
 
     $scope.setLogoPlan = function (cuid) {
-
         var newFl = {
             is_published: 'true',
             cuid: cuid,

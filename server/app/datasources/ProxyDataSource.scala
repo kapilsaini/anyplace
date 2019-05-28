@@ -387,6 +387,11 @@ class ProxyDataSource private() extends IDatasource {
     mActiveDatabase.getLocationHistoryByObjId(objid)
   }
 
+  override def getLocationHistoryByObjIdBuidFloor(obid: String, buid: String, floor: String): util.List[JsonObject] = {
+    _checkActiveDatasource()
+    mActiveDatabase.getLocationHistoryByObjIdBuidFloor(obid, buid, floor)
+  }
+
   override def getLocationHistoryByBuidFloor(buid: String, floor: String): List[JsonObject]  = {
     _checkActiveDatasource()
     mActiveDatabase.getLocationHistoryByBuidFloor(buid, floor)
@@ -441,5 +446,10 @@ class ProxyDataSource private() extends IDatasource {
   override def getRadioHeatmapByBuildingFloorUnReduced(buid: String, floor: String): List[JsonObject] = {
     _checkActiveDatasource()
     mActiveDatabase.getRadioHeatmapByBuildingFloorUnReduced(buid, floor)
+  }
+
+  override def getLocationFeedback():  List[JsonObject] = {
+    _checkActiveDatasource()
+    mActiveDatabase.getLocationFeedback()
   }
 }

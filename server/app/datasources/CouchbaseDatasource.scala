@@ -138,6 +138,8 @@ class CouchbaseDatasource private(hostname: String,
         .builder()
         .autoreleaseAfter(100000) //100000ms = 100s, default is 2s
         .connectTimeout(100000) //100000ms = 100s, default is 5s
+        .queryTimeout(1000000) //1000000 = 1000s , defaut is 75s
+        .computationPoolSize(1)
         .socketConnectTimeout(100000) //100000ms = 100s, default is 5s
         .build()
 
@@ -659,7 +661,9 @@ class CouchbaseDatasource private(hostname: String,
     val startkey = JsonArray.from(buid, floor,timestampX,"","")
     val endkey = JsonArray.from(buid, floor,timestampY,"90", "180")
 
-    val viewQuery = ViewQuery.from("heatmaps", "heatmap_by_floor_building").startKey(startkey).endKey(endkey).group(true).reduce(true).inclusiveEnd(true)
+    println("StartKey" + startkey)
+    println("EndKey" + endkey)
+    val viewQuery = ViewQuery.from("heatmaps", "heatmap_by_floor_building_timestamp").startKey(startkey).endKey(endkey).group(true).reduce(true).inclusiveEnd(true)
     val res = couchbaseClient.query(viewQuery)
 
     var json: JsonObject = null
@@ -860,7 +864,7 @@ class CouchbaseDatasource private(hostname: String,
     val couchbaseClient = getConnection
     val startkey = JsonArray.from(buid, floor,"000000000000000")
     val endkey = JsonArray.from(buid, floor,"999999999999999")
-    val viewQuery = ViewQuery.from("heatmaps", "heatmap_by_floor_building").startKey(startkey).endKey(endkey).group(true)
+    val viewQuery = ViewQuery.from("heatmaps", "heatmap_by_floor_building_timestamp").startKey(startkey).endKey(endkey).group(true)
     val res = couchbaseClient.query(viewQuery)
 
     LPLogger.info("getFingerPrintsTime couchbase results: " + res.totalRows())
@@ -2101,6 +2105,30 @@ class CouchbaseDatasource private(hostname: String,
     result.sortWith(_.getString("timestamp").toLong > _.getString("timestamp").toLong)
   }
 
+  override def getLocationHistoryByObjIdBuidFloor(obid: String, buid: String, floor: String): List[JsonObject] = {
+    val couchbaseClient = getConnection
+    val viewQuery = ViewQuery.from("loc_history", "location_history_by_obid_buid_floor").key(JsonArray.from(obid, buid, floor)).stale(Stale.FALSE)
+
+    val res = couchbaseClient.query(viewQuery)
+    val result = new ArrayList[JsonObject]()
+    val sortedResult = new ArrayList[JsonObject]()
+
+    var json: JsonObject = null
+
+    for (row <- res.allRows()) {
+      try {
+        json = row.document().content()
+        json.removeKey("radio_map")
+        json.removeKey("obid")
+        json.removeKey("objcat")
+        json.removeKey("lhistid")
+        result.add(json)
+      } catch {
+        case e: IOException =>
+      }
+    }
+    result.sortWith(_.getString("timestamp").toLong > _.getString("timestamp").toLong)
+  }
   override def getLocationHistoryByBuidFloor(buid: String, floor: String): List[JsonObject] = {
     val couchbaseClient = getConnection
     val viewQuery = ViewQuery.from("loc_history", "location_history_by_buid").key(JsonArray.from(buid, floor)).stale(Stale.FALSE)
@@ -2127,14 +2155,12 @@ class CouchbaseDatasource private(hostname: String,
   override def getLocHistoryObjCat(): List[JsonObject] = {
     val couchbaseClient = getConnection
     val viewQuery = ViewQuery.from("loc_history", "location_history_obj_cat").stale(Stale.FALSE).reduce(true)groupLevel(1)
-
-    val res = couchbaseClient.query(viewQuery)
     val result = new ArrayList[JsonObject]()
-    
-    for (row <- res.allRows()) {
-      try {
+    try {
+      val res = couchbaseClient.query(viewQuery)
+       
+      for (row <- res.allRows()) {
         var json: JsonObject = JsonObject.empty()
-
         //Filter values for uniqueness
         var temp = new ArrayList[String]()
         for (t <- row.value.asInstanceOf[JsonArray]) {
@@ -2143,13 +2169,15 @@ class CouchbaseDatasource private(hostname: String,
             temp.add(tempVal)
           }
         }
-
         json.put(row.key.toString, temp)
         result.add(json)
-      } catch {
-        case e: IOException =>
       }
-    }
+    } catch {
+      case e: IOException => 
+        LPLogger.error("getLocHistoryObjCat:: IOError -> " + e.getMessage())
+      case e: Exception => 
+        LPLogger.error("getLocHistoryObjCat:: Error -> " + e.getMessage())
+    }   
     result
   }
 
@@ -2369,5 +2397,25 @@ class CouchbaseDatasource private(hostname: String,
       }
     }
     points
+  }
+
+
+  override def getLocationFeedback() = {
+    LPLogger.info("CouchbaseDatasource::getLocationFeedback")
+    val couchbaseClient = getConnection
+
+    val viewQuery = ViewQuery.from("feedback", "feedback_all")
+    val result = new ArrayList[JsonObject]()
+    val res = couchbaseClient.query(viewQuery)
+    LPLogger.info("getLocationFeedback couchbase results: " + res.totalRows())
+    if (!res.success()) {
+      throw new DatasourceException("Error retrieving LocationFeedback from database!")
+    }
+    var json: JsonObject = null
+
+    for (row <- res.allRows()) {
+      result.add(row.value().asInstanceOf[JsonObject])
+    }
+    result
   }
 }

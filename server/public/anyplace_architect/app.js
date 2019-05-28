@@ -138,12 +138,12 @@ app.service('GMapService', function () {
         return tile;
     };
 
-    var mapTypeId = "roadmap";
+    var mapTypeId = "CartoLight";
     if (typeof(Storage) !== "undefined" && localStorage) {
         if (localStorage.getItem('mapTypeId'))
             mapTypeId = localStorage.getItem('mapTypeId');
         else
-            localStorage.setItem("mapTypeId", "roadmap");
+            localStorage.setItem("mapTypeId", "CartoLight");
     }
 
 
@@ -163,10 +163,18 @@ app.service('GMapService', function () {
             mapTypeIds: ['OSM', /* 'CartoDark',*/ 'CartoLight', /* 'coordinate',*/ 'roadmap', 'satellite'],
             style: google.maps.MapTypeControlStyle.DROPDOWN_MENU,
             position: google.maps.ControlPosition.LEFT_CENTER
-        }
+        }                                   
     });
 
     self.gmap.addListener('maptypeid_changed', function () {
+        console.log("Changed map Type to  " + self.gmap.getMapTypeId() + " at level " + self.gmap.zoom)
+        if (self.gmap.getMapTypeId() === 'my_custom_layer1' && self.gmap.zoom < 22) {
+            GMapService.gmap.setMapTypeId(localStorage.getItem("previousMapTypeId"))                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                ;
+        } 
+        else if (self.gmap.getMapTypeId() !== 'my_custom_layer1' && self.gmap.zoom === 22){
+            localStorage.setItem("previousMapTypeId",self.gmap.getMapTypeId());
+        }
+
         var showStreetViewControl = self.gmap.getMapTypeId() === 'roadmap' || self.gmap.getMapTypeId() === 'satellite';
         localStorage.setItem("mapTypeId",self.gmap.getMapTypeId());
         customMapAttribution(self.gmap);
@@ -201,6 +209,7 @@ app.service('GMapService', function () {
     self.gmap.mapTypes.set("CartoLight", new CartoLightMapType(new google.maps.Size(256, 256)));
     // Now attach the coordinate map type to the map's registry.
     //self.gmap.mapTypes.set('coordinate', new CoordMapType(new google.maps.Size(256, 256)));
+
     customMapAttribution(self.gmap);
 
     // Initialize search box for places
