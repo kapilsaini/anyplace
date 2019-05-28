@@ -60,7 +60,6 @@ import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
-import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.DialogFragment;
 import android.support.v4.content.ContextCompat;
@@ -87,6 +86,7 @@ import com.circlegate.tt.cg.an.lib.map.OnInfoWindowElemTouchListener;
 import com.dmsl.anyplace.AnyplacePrefs.Action;
 import com.dmsl.anyplace.cache.AnyplaceCache;
 import com.dmsl.anyplace.cache.BackgroundFetchListener;
+import com.dmsl.anyplace.feedback.AnyplaceFeedbackLoggerActivity;
 import com.dmsl.anyplace.floor.Algo1Radiomap;
 import com.dmsl.anyplace.floor.Algo1Server;
 import com.dmsl.anyplace.floor.FloorSelector;
@@ -472,7 +472,7 @@ public class UnifiedNavigationActivity extends SherlockFragmentActivity implemen
     }
 
     @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String permissions[], @NonNull int[] grantResults) {
+    public void onRequestPermissionsResult(int requestCode, String permissions[], int[] grantResults) {
         switch (requestCode) {
             case PERMISSION_LOCATION_READ: {
                 if (grantResults.length > 0
@@ -717,6 +717,22 @@ public class UnifiedNavigationActivity extends SherlockFragmentActivity implemen
             public boolean onMenuItemClick(MenuItem item) {
                 Intent intent = new Intent(getApplicationContext(), AnyplaceLoggerActivity.class);
                 startActivity(intent);
+                return true;
+            }
+        });
+
+        /*
+            * Load Anyplace Feedback Module
+        */
+        final SubMenu subMenuFeedbackLogger = menu.addSubMenu("Feedback");
+        final MenuItem LoadFeedbackLogger = subMenuFeedbackLogger.getItem();
+        LoadFeedbackLogger.setShowAsAction(MenuItem.SHOW_AS_ACTION_NEVER);
+        LoadFeedbackLogger.setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
+            @Override
+            public boolean onMenuItemClick(MenuItem item) {
+                Intent intent = new Intent(getApplicationContext(), AnyplaceFeedbackLoggerActivity.class);
+                startActivity(intent);
+                Log.d("UnifiedNavActivity", "feedback activity started");
                 return true;
             }
         });
@@ -1497,10 +1513,12 @@ public class UnifiedNavigationActivity extends SherlockFragmentActivity implemen
 
             @Override
             public void onSuccess(String result) {
+
                 if (disableSuccess) {
                     onErrorOrCancel("");
                     return;
                 }
+                Log.d("UnifiedNavActivity", "selectPlaceActivityResult_HELP2 Success");
                 // start the tracker
                 enableAnyplaceTracker();
 
@@ -1995,6 +2013,7 @@ public class UnifiedNavigationActivity extends SherlockFragmentActivity implemen
     @Override
     public void onLocationChanged(Location location) {
         if (location != null) {
+            Log.d("UnifiedNavActivity", "OnLocationChanged Called");
             userData.setLocationGPS(location);
             updateLocation();
 
@@ -2009,6 +2028,7 @@ public class UnifiedNavigationActivity extends SherlockFragmentActivity implemen
     @Override
     public void onNewLocation(final LatLng pos) {
         userData.setPositionWifi(pos.latitude, pos.longitude);
+        Log.d("UnifiedNavActivity", "OnNewLocation Called");
         this.runOnUiThread(new Runnable() {
 
             @Override
